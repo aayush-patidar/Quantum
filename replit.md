@@ -44,10 +44,20 @@ Preferred communication style: Simple, everyday language.
 - `/documentation` — Static documentation hub (getting started, API reference, algorithms, SDKs)
 - `/education` — Course catalog with difficulty filtering
 - `/hackathon` — Hackathon listings with status/difficulty filters
+- `/use-cases` — Guided quantum use case wizards (finance, chemistry, optimization)
+- `/labs` — Interactive learning labs with difficulty filters and attempt tracking
+- `/workspaces` — Ephemeral development workspaces (Qiskit, PennyLane, Cirq)
+- `/templates` — Domain-specific quantum templates with classical baselines
+- `/gallery` — Public experiment gallery with likes and forks
+- `/code-submit` — Multi-framework code submission (Qiskit, PennyLane, Cirq, OpenQASM)
+- `/courses` — Course management with browse/enroll/teach tabs
+- `/analytics` — Platform analytics with Recharts visualizations
+- `/network-lab` — Quantum network protocol simulator (Teleportation, QKD, Entanglement Swapping)
+- `/snapshots` — Experiment snapshot management for reproducibility
 
 **Sidebar Navigation Groups:**
 - Platform: Dashboard, Circuit Composer, My Circuits, Jobs, Backends, Results
-- Tools & Learning: AI Assistant, Documentation, Education, Hackathons
+- Tools & Learning: AI Assistant, Documentation, Education, Hackathons, Use Cases, Labs, Workspaces, Templates, Gallery, Code Submit, Courses, Analytics, Network Lab, Snapshots
 - Account: Settings, Support
 
 ### Backend
@@ -67,17 +77,36 @@ Preferred communication style: Simple, everyday language.
 - **Schema Push**: `npm run db:push` uses drizzle-kit to push schema changes directly
 
 **Key Tables:**
-- `users` — User accounts with roles (admin, researcher, enterprise_user, student), credit_balance field
+- `users` — User accounts with roles (admin, researcher, enterprise_user, student), credit_balance, experienceLevel field
 - `organizations` — Multi-tenant organization support with plan tiers (free, academic, enterprise)
 - `circuits` — Quantum circuit definitions with QASM and JSON circuit data, versioning, visibility controls
 - `quantum_backends` — 24 backends from 11 providers (ibm, aws, aqt, iqm, pasqal, quera, rigetti, quantinuum, nec, local_simulator, pennylane)
-- `jobs` — Job queue with status tracking and credit deduction
+- `jobs` — Job queue with status tracking, credit deduction, backendMode, compilationProfile, mitigationProfile, reliabilityScore, isTrustedRun, manifestHash, routerRationale
 - `job_results` — Measurement results and metadata for completed jobs
 - `api_keys` — User API keys with SHA-256 hashing, prefix display, 24hr cooldown
 - `support_tickets` — Support tickets with status/priority/category tracking
 - `support_messages` — Message threads within support tickets
 - `assistant_threads` — AI assistant conversation threads
 - `assistant_messages` — Messages within assistant threads (user and assistant roles)
+- `use_case_journeys` — Guided use case wizard definitions (finance, chemistry, optimization)
+- `learning_labs` — Interactive quantum computing labs with objectives and hints
+- `lab_attempts` — User attempts at learning labs with scoring
+- `workspaces` — Ephemeral development environments for different frameworks
+- `experiment_snapshots` — Reproducible experiment records from jobs
+- `domain_templates` — Pre-built quantum circuit templates by domain
+- `classical_baselines` — Classical algorithm baselines for comparison
+- `courses` — Course catalog with instructor support
+- `course_lessons` — Individual lessons within courses
+- `course_enrollments` — Student enrollments with progress tracking
+- `public_experiments` — Gallery of shared experiments with likes/forks
+- `org_usage_events` — Organization usage tracking
+- `analytics_snapshots` — Platform analytics data points
+- `optimization_trajectories` — Optimization algorithm trajectory tracking
+- `job_diagnostics` — Detailed job diagnostic information
+- `network_nodes` — Quantum network topology nodes
+- `network_channels` — Quantum network channels between nodes
+- `network_experiments` — Quantum network protocol simulations
+- `quantum_tokens` — Token management system
 
 All primary keys use UUID generation via `gen_random_uuid()`.
 

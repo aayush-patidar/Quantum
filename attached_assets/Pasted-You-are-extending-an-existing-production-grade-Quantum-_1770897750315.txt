@@ -1,0 +1,142 @@
+You are extending an existing, production-grade Quantum Computing Cloud Platform. Most core capabilities (auth, RBAC, circuits, jobs, backends, VQE/QAOA/QML, dashboards, Docker/K8s) already exist. Implement the following **new features as tasks**.
+
+***
+
+## 1. Intelligent UX & Guided Onboarding
+
+1. Add “Experience Level” to user profile (`beginner | intermediate | expert`) in backend and expose via API.
+2. Update frontend to show Beginner vs Expert UI modes (simplified vs full controls, tooltips, advanced options).
+3. Implement “Use Case Journeys” (wizards) for:
+   - Portfolio optimization (QAOA/VQE).
+   - Molecular ground state (VQE).
+   - Max-Cut (QAOA).
+   - Quantum ML classifier (QML/QSVM).
+4. Add backend endpoints for each use case (`/usecases/.../run`) that build the right circuit/algorithm config and submit jobs.
+5. Implement a “Learning Labs” section:
+   - Backend models for labs, tasks, and auto-evaluation.
+   - APIs: list labs, get lab details, submit lab attempt and grade.
+   - Frontend pages to browse labs, run provided circuits, see pass/fail feedback.
+
+***
+
+## 2. Quantum Developer Experience Enhancements
+
+6. Implement ephemeral “workspaces” (e.g., notebook/IDE containers) with Qiskit, PennyLane, Cirq preinstalled:
+   - Backend model + APIs: create, list, terminate workspaces.
+   - Basic lifecycle (status, expiry).
+7. Add a “Workspaces” page in frontend for one-click workspace creation and opening.
+8. Extend quantum abstraction layer to accept multiple representations (`qiskit`, `pennylane`, `cirq`, `openqasm`, `platform_ir`).
+9. Implement converters from these representations to the platform’s internal IR.
+10. Create `POST /programs/submit` API that accepts multi-framework programs, normalizes them, and routes to existing orchestrator.
+11. On frontend, add a “Code-based submission” view where users can paste/upload Qiskit/PennyLane/Cirq code and submit jobs.
+12. Implement “Experiment Snapshots”:
+    - Backend models linking code, circuits, backend, algorithm config, SDK versions.
+    - APIs: create snapshot from job, get snapshot, rerun snapshot.
+    - Frontend: “Create snapshot” and “Rerun experiment” buttons on job detail page.
+
+***
+
+## 3. Advanced Compilation, Scheduling & Performance
+
+13. Build a backend metadata service to track backend properties (qubits, connectivity, queue length, error rates).
+14. Implement a “Smart backend router” service that, given job requirements, selects the best backend.
+15. Extend job config to support `backend_mode = EXPLICIT | AUTO`.
+16. Update orchestrator to call router when `backend_mode = AUTO`.
+17. Update frontend backend-selection UX with an “Auto-select best backend” option and show chosen backend + rationale.
+18. Extend compilation pipeline with **compilation profiles** (`fast`, `balanced`, `high_fidelity`) mapped to concrete transpiler options.
+19. Add `compilation_profile` to job/circuit config and enforce it in the compiler layer.
+20. Add UI controls to select compilation profile with short descriptions.
+21. Implement a `POST /jobs/estimate` endpoint that returns estimated queue time, run time, cost/credits, and reliability score.
+22. Add a pre-submit estimation panel in the frontend job submission flow.
+
+***
+
+## 4. Error Mitigation, Reliability & Trusted Runs
+
+23. Implement error mitigation profiles in backend (`fast`, `balanced`, `high_fidelity`) with at least one real mitigation strategy (e.g., measurement mitigation for simulators).
+24. Add `mitigation_profile` to job config and integrate into post-processing pipeline.
+25. Expose mitigation profiles in frontend as a dropdown with impact hints (speed vs fidelity).
+26. Implement reliability scoring for each job:
+    - Use backend calibration, error rates, circuit depth, and historical success.
+    - Store a 0–100 score and label (low/medium/high).
+27. Display reliability scores in backend list and job detail views.
+28. Implement “trusted/auditable runs”:
+    - For selected jobs, record an immutable job manifest with settings and hashes.
+    - API to retrieve signed manifest (`/jobs/{id}/manifest`).
+29. Add “Trusted run” toggle in job submission UI and indicate “Auditable” status in job lists.
+
+***
+
+## 5. Hybrid & Domain-Specific Workflows
+
+30. Implement domain-specific template catalog in backend (finance, chemistry, optimization, security, smart grid, business analytics).
+31. Add APIs to list templates, view details, and run template with user data (`/templates/{id}/run`).
+32. Create a “Templates” page in frontend with domain filters and “Use this template” button opening a tailored wizard.
+33. Implement classical baselines for selected problems (e.g., small Max-Cut, simple classifiers).
+34. Extend job flow so a classical baseline can be auto-run or requested alongside the quantum job.
+35. Show quantum vs classical result comparison (accuracy/cost/time) in job detail UI.
+
+***
+
+## 6. Collaboration, Courses & Community
+
+36. Implement collaboration sessions in backend for circuits/notebooks (`session_id`, participants, resource references).
+37. Add WebSocket-based real-time editing channels (operations, presence, cursors) tied to collaboration sessions.
+38. Update circuit editor/notebook frontend to support real-time collaborative edits and presence indicators.
+39. Add course/lesson entities in backend (courses, lessons, assignments) with RBAC (instructor, student).
+40. Implement APIs for instructors to create/edit courses and attach labs/circuits.
+41. Implement APIs for students to enroll and track progress.
+42. Build instructor UI for managing courses/lessons and linking labs.
+43. Build student UI for enrolled courses, lesson content, and progress indicators.
+44. Implement public experiment visibility for circuits, jobs, and experiment snapshots.
+45. Add `/public/experiments` APIs with filters/search and detail view.
+46. Create a “Public Gallery” UI with search and filters plus a “Fork and run” button to clone experiments into a user’s workspace.
+
+***
+
+## 7. Enterprise Governance, Usage & PQC Hooks
+
+47. Extend org-level policies to control:
+    - Allowed backends.
+    - Allowed algorithms/templates.
+    - Quotas/limits (jobs, credits, concurrency).
+48. Implement APIs to get/update org policies and enforce them in job submission, workspace creation, and template usage.
+49. Add Org Admin UI for configuring backend allowlists, algorithm restrictions, and quotas.
+50. Implement credit/usage tracking per org (jobs count, cost/credits per backend and team).
+51. Add APIs to fetch usage and credits and enforce soft/hard limits.
+52. Create usage dashboards showing org-level consumption and remaining credits.
+53. Add a `crypto` module in backend with abstraction interfaces for key management and signing tokens/manifests.
+54. Implement classical crypto now but design interfaces for future ML-KEM / ML-DSA integration (config flags and placeholders, no hard wiring).
+55. Use the crypto abstraction to sign experiment manifests and internal service tokens.
+
+***
+
+## 8. Analytics, Explainability & Diagnostics
+
+56. Implement analytics aggregation jobs for:
+    - Jobs by status, backend, algorithm, domain.
+    - Error rates vs depth/qubits.
+    - Mitigation profile effectiveness.
+57. Expose analytics APIs for org-level and backend-level metrics.
+58. Build analytics dashboards in frontend (charts for jobs, errors, backend health, algorithm performance).
+59. For VQE/QAOA/QML jobs, log optimization trajectories (parameters and cost per iteration).
+60. Add `GET /jobs/{id}/trajectory` and compute summary stats (convergence speed, best value).
+61. Visualize trajectories and parameter evolution in job detail page.
+62. Implement a “diagnostics” module to analyze failed jobs (logs, circuit properties, backend metadata).
+63. Add `GET /jobs/{id}/diagnostics` returning categorized cause and actionable suggestions.
+64. Add a “View diagnostics” section on the job detail page for failed jobs.
+
+***
+
+## 9. Quantum Network & Future Features (Hooks)
+
+65. Implement a basic “Quantum Network Lab” simulator module:
+    - Models for nodes, channels, simple protocols (teleportation/QKD).
+    - APIs to define and run simulated network experiments (`/qnet/experiments`).
+66. Add a “Quantum Networks” lab UI with node-and-channel visual editor and result visualization.
+67. Define token/credential entities and simple APIs (`/tokens/issue`, `/tokens/{id}`) as hooks for future quantum token/credential experiments (no complex crypto yet).
+68. Integrate these token/credential hooks into job submission validation where appropriate (configurable, off by default).
+
+***
+
+When you process this list, implement each task incrementally in the existing codebase (backend, frontend, quantum engine, DB migrations, tests) while preserving the current platform behavior and keeping everything production-ready.

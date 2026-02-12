@@ -30,6 +30,15 @@ import {
   Bot,
   Trophy,
   LogOut,
+  Wand2,
+  FlaskConical,
+  Monitor,
+  LayoutTemplate,
+  Image,
+  Code2,
+  PieChart,
+  Network,
+  Camera,
 } from "lucide-react";
 
 const platformItems = [
@@ -46,6 +55,16 @@ const toolsItems = [
   { title: "Documentation", url: "/documentation", icon: BookOpen, testId: "nav-documentation" },
   { title: "Education", url: "/education", icon: GraduationCap, testId: "nav-education" },
   { title: "Hackathons", url: "/hackathon", icon: Trophy, testId: "nav-hackathon" },
+  { title: "Use Cases", url: "/use-cases", icon: Wand2, testId: "nav-use-cases" },
+  { title: "Labs", url: "/labs", icon: FlaskConical, testId: "nav-labs" },
+  { title: "Workspaces", url: "/workspaces", icon: Monitor, testId: "nav-workspaces" },
+  { title: "Templates", url: "/templates", icon: LayoutTemplate, testId: "nav-templates" },
+  { title: "Gallery", url: "/gallery", icon: Image, testId: "nav-gallery" },
+  { title: "Code Submit", url: "/code-submit", icon: Code2, testId: "nav-code-submit" },
+  { title: "Courses", url: "/courses", icon: GraduationCap, testId: "nav-courses" },
+  { title: "Analytics", url: "/analytics", icon: PieChart, testId: "nav-analytics" },
+  { title: "Network Lab", url: "/network-lab", icon: Network, testId: "nav-network-lab" },
+  { title: "Snapshots", url: "/snapshots", icon: Camera, testId: "nav-snapshots" },
 ];
 
 const accountItems = [

@@ -22,6 +22,16 @@ import DocumentationPage from "@/pages/documentation";
 import EducationPage from "@/pages/education";
 import AssistantPage from "@/pages/assistant";
 import HackathonPage from "@/pages/hackathon";
+import UseCasesPage from "@/pages/use-cases";
+import LabsPage from "@/pages/labs";
+import WorkspacesPage from "@/pages/workspaces";
+import TemplatesPage from "@/pages/templates";
+import GalleryPage from "@/pages/gallery";
+import CodeSubmitPage from "@/pages/code-submit";
+import CoursesPage from "@/pages/courses";
+import AnalyticsPage from "@/pages/analytics";
+import NetworkLabPage from "@/pages/network-lab";
+import SnapshotsPage from "@/pages/snapshots";
 import NotFound from "@/pages/not-found";
 
 function ThemeToggle() {
@@ -48,6 +58,16 @@ function AppRouter() {
       <Route path="/education" component={EducationPage} />
       <Route path="/assistant" component={AssistantPage} />
       <Route path="/hackathon" component={HackathonPage} />
+      <Route path="/use-cases" component={UseCasesPage} />
+      <Route path="/labs" component={LabsPage} />
+      <Route path="/workspaces" component={WorkspacesPage} />
+      <Route path="/templates" component={TemplatesPage} />
+      <Route path="/gallery" component={GalleryPage} />
+      <Route path="/code-submit" component={CodeSubmitPage} />
+      <Route path="/courses" component={CoursesPage} />
+      <Route path="/analytics" component={AnalyticsPage} />
+      <Route path="/network-lab" component={NetworkLabPage} />
+      <Route path="/snapshots" component={SnapshotsPage} />
       <Route path="/login" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
