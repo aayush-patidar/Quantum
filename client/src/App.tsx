@@ -16,6 +16,12 @@ import CircuitsPage from "@/pages/circuits";
 import JobsPage from "@/pages/jobs";
 import BackendsPage from "@/pages/backends";
 import ResultsPage from "@/pages/results";
+import SettingsPage from "@/pages/settings";
+import SupportPage from "@/pages/support";
+import DocumentationPage from "@/pages/documentation";
+import EducationPage from "@/pages/education";
+import AssistantPage from "@/pages/assistant";
+import HackathonPage from "@/pages/hackathon";
 import NotFound from "@/pages/not-found";
 
 function ThemeToggle() {
@@ -36,6 +42,12 @@ function AppRouter() {
       <Route path="/jobs" component={JobsPage} />
       <Route path="/backends" component={BackendsPage} />
       <Route path="/results" component={ResultsPage} />
+      <Route path="/settings" component={SettingsPage} />
+      <Route path="/support" component={SupportPage} />
+      <Route path="/documentation" component={DocumentationPage} />
+      <Route path="/education" component={EducationPage} />
+      <Route path="/assistant" component={AssistantPage} />
+      <Route path="/hackathon" component={HackathonPage} />
       <Route path="/login" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>

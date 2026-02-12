@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -65,11 +66,19 @@ const GATE_DEFINITIONS: GateDefinition[] = [
   { name: "Z", label: "Z", color: "#a855f7", category: "single" },
   { name: "S", label: "S", color: "#f97316", category: "single" },
   { name: "T", label: "T", color: "#06b6d4", category: "single" },
+  { name: "SX", label: "SX", color: "#f43f5e", category: "single" },
+  { name: "SDG", label: "S\u2020", color: "#fb923c", category: "single" },
+  { name: "TDG", label: "T\u2020", color: "#67e8f9", category: "single" },
   { name: "RX", label: "RX", color: "#7dd3fc", category: "rotation", hasParams: true },
   { name: "RY", label: "RY", color: "#86efac", category: "rotation", hasParams: true },
   { name: "RZ", label: "RZ", color: "#c4b5fd", category: "rotation", hasParams: true },
   { name: "CNOT", label: "CX", color: "#f59e0b", category: "multi", multiQubit: true },
   { name: "CZ", label: "CZ", color: "#14b8a6", category: "multi", multiQubit: true },
+  { name: "SWAP", label: "SW", color: "#ec4899", category: "multi", multiQubit: true },
+  { name: "CCX", label: "CCX", color: "#d946ef", category: "multi", multiQubit: true },
+  { name: "CRX", label: "CRX", color: "#0ea5e9", category: "controlled", multiQubit: true, hasParams: true },
+  { name: "CRY", label: "CRY", color: "#10b981", category: "controlled", multiQubit: true, hasParams: true },
+  { name: "CRZ", label: "CRZ", color: "#8b5cf6", category: "controlled", multiQubit: true, hasParams: true },
   { name: "M", label: "M", color: "#6b7280", category: "measurement" },
 ];
 
@@ -77,6 +86,7 @@ const CATEGORIES = [
   { id: "single", label: "Single Qubit Gates" },
   { id: "rotation", label: "Rotation Gates" },
   { id: "multi", label: "Multi-Qubit Gates" },
+  { id: "controlled", label: "Controlled Rotations" },
   { id: "measurement", label: "Measurement" },
 ];
 
@@ -115,6 +125,15 @@ function generateQASM(circuit: CircuitState): string {
       case "T":
         lines.push(`t q[${g.qubit}];`);
         break;
+      case "SX":
+        lines.push(`sx q[${g.qubit}];`);
+        break;
+      case "SDG":
+        lines.push(`sdg q[${g.qubit}];`);
+        break;
+      case "TDG":
+        lines.push(`tdg q[${g.qubit}];`);
+        break;
       case "RX":
         lines.push(`rx(${angle.toFixed(4)}) q[${g.qubit}];`);
         break;
@@ -130,6 +149,21 @@ function generateQASM(circuit: CircuitState): string {
       case "CZ":
         lines.push(`cz q[${g.controlQubit ?? 0}],q[${g.qubit}];`);
         break;
+      case "SWAP":
+        lines.push(`swap q[${g.controlQubit ?? 0}],q[${g.qubit}];`);
+        break;
+      case "CCX":
+        lines.push(`ccx q[${g.controlQubit ?? 0}],q[${(g.controlQubit ?? 0) + 1}],q[${g.qubit}];`);
+        break;
+      case "CRX":
+        lines.push(`crx(${angle.toFixed(4)}) q[${g.controlQubit ?? 0}],q[${g.qubit}];`);
+        break;
+      case "CRY":
+        lines.push(`cry(${angle.toFixed(4)}) q[${g.controlQubit ?? 0}],q[${g.qubit}];`);
+        break;
+      case "CRZ":
+        lines.push(`crz(${angle.toFixed(4)}) q[${g.controlQubit ?? 0}],q[${g.qubit}];`);
+        break;
       case "M":
         lines.push(`measure q[${g.qubit}] -> c[${g.qubit}];`);
         break;
@@ -137,6 +171,467 @@ function generateQASM(circuit: CircuitState): string {
   }
 
   return lines.join("\n");
+}
+
+function generateQiskitCode(circuit: CircuitState): string {
+  const lines: string[] = [
+    "from qiskit import QuantumCircuit",
+    "",
+    `qc = QuantumCircuit(${circuit.qubits}, ${circuit.qubits})`,
+    "",
+  ];
+
+  const sorted = [...circuit.gates].sort((a, b) => a.step - b.step || a.qubit - b.qubit);
+
+  for (const g of sorted) {
+    const angle = g.params?.angle ?? Math.PI;
+    switch (g.gate) {
+      case "H":
+        lines.push(`qc.h(${g.qubit})`);
+        break;
+      case "X":
+        lines.push(`qc.x(${g.qubit})`);
+        break;
+      case "Y":
+        lines.push(`qc.y(${g.qubit})`);
+        break;
+      case "Z":
+        lines.push(`qc.z(${g.qubit})`);
+        break;
+      case "S":
+        lines.push(`qc.s(${g.qubit})`);
+        break;
+      case "T":
+        lines.push(`qc.t(${g.qubit})`);
+        break;
+      case "SX":
+        lines.push(`qc.sx(${g.qubit})`);
+        break;
+      case "SDG":
+        lines.push(`qc.sdg(${g.qubit})`);
+        break;
+      case "TDG":
+        lines.push(`qc.tdg(${g.qubit})`);
+        break;
+      case "RX":
+        lines.push(`qc.rx(${angle.toFixed(4)}, ${g.qubit})`);
+        break;
+      case "RY":
+        lines.push(`qc.ry(${angle.toFixed(4)}, ${g.qubit})`);
+        break;
+      case "RZ":
+        lines.push(`qc.rz(${angle.toFixed(4)}, ${g.qubit})`);
+        break;
+      case "CNOT":
+        lines.push(`qc.cx(${g.controlQubit ?? 0}, ${g.qubit})`);
+        break;
+      case "CZ":
+        lines.push(`qc.cz(${g.controlQubit ?? 0}, ${g.qubit})`);
+        break;
+      case "SWAP":
+        lines.push(`qc.swap(${g.controlQubit ?? 0}, ${g.qubit})`);
+        break;
+      case "CCX":
+        lines.push(`qc.ccx(${g.controlQubit ?? 0}, ${(g.controlQubit ?? 0) + 1}, ${g.qubit})`);
+        break;
+      case "CRX":
+        lines.push(`qc.crx(${angle.toFixed(4)}, ${g.controlQubit ?? 0}, ${g.qubit})`);
+        break;
+      case "CRY":
+        lines.push(`qc.cry(${angle.toFixed(4)}, ${g.controlQubit ?? 0}, ${g.qubit})`);
+        break;
+      case "CRZ":
+        lines.push(`qc.crz(${angle.toFixed(4)}, ${g.controlQubit ?? 0}, ${g.qubit})`);
+        break;
+      case "M":
+        lines.push(`qc.measure(${g.qubit}, ${g.qubit})`);
+        break;
+    }
+  }
+
+  if (!sorted.some((g) => g.gate === "M")) {
+    lines.push("");
+    lines.push("qc.measure_all()");
+  }
+
+  return lines.join("\n");
+}
+
+function generateCirqCode(circuit: CircuitState): string {
+  const lines: string[] = [
+    "import cirq",
+    "",
+    `qubits = cirq.LineQubit.range(${circuit.qubits})`,
+    "circuit = cirq.Circuit()",
+    "",
+  ];
+
+  const sorted = [...circuit.gates].sort((a, b) => a.step - b.step || a.qubit - b.qubit);
+
+  for (const g of sorted) {
+    const angle = g.params?.angle ?? Math.PI;
+    switch (g.gate) {
+      case "H":
+        lines.push(`circuit.append(cirq.H(qubits[${g.qubit}]))`);
+        break;
+      case "X":
+        lines.push(`circuit.append(cirq.X(qubits[${g.qubit}]))`);
+        break;
+      case "Y":
+        lines.push(`circuit.append(cirq.Y(qubits[${g.qubit}]))`);
+        break;
+      case "Z":
+        lines.push(`circuit.append(cirq.Z(qubits[${g.qubit}]))`);
+        break;
+      case "S":
+        lines.push(`circuit.append(cirq.S(qubits[${g.qubit}]))`);
+        break;
+      case "T":
+        lines.push(`circuit.append(cirq.T(qubits[${g.qubit}]))`);
+        break;
+      case "SX":
+        lines.push(`circuit.append(cirq.X(qubits[${g.qubit}])**0.5)`);
+        break;
+      case "SDG":
+        lines.push(`circuit.append(cirq.S(qubits[${g.qubit}])**-1)`);
+        break;
+      case "TDG":
+        lines.push(`circuit.append(cirq.T(qubits[${g.qubit}])**-1)`);
+        break;
+      case "RX":
+        lines.push(`circuit.append(cirq.rx(${angle.toFixed(4)})(qubits[${g.qubit}]))`);
+        break;
+      case "RY":
+        lines.push(`circuit.append(cirq.ry(${angle.toFixed(4)})(qubits[${g.qubit}]))`);
+        break;
+      case "RZ":
+        lines.push(`circuit.append(cirq.rz(${angle.toFixed(4)})(qubits[${g.qubit}]))`);
+        break;
+      case "CNOT":
+        lines.push(`circuit.append(cirq.CNOT(qubits[${g.controlQubit ?? 0}], qubits[${g.qubit}]))`);
+        break;
+      case "CZ":
+        lines.push(`circuit.append(cirq.CZ(qubits[${g.controlQubit ?? 0}], qubits[${g.qubit}]))`);
+        break;
+      case "SWAP":
+        lines.push(`circuit.append(cirq.SWAP(qubits[${g.controlQubit ?? 0}], qubits[${g.qubit}]))`);
+        break;
+      case "CCX":
+        lines.push(`circuit.append(cirq.CCX(qubits[${g.controlQubit ?? 0}], qubits[${(g.controlQubit ?? 0) + 1}], qubits[${g.qubit}]))`);
+        break;
+      case "CRX":
+        lines.push(`circuit.append(cirq.ControlledGate(cirq.rx(${angle.toFixed(4)}))(qubits[${g.controlQubit ?? 0}], qubits[${g.qubit}]))`);
+        break;
+      case "CRY":
+        lines.push(`circuit.append(cirq.ControlledGate(cirq.ry(${angle.toFixed(4)}))(qubits[${g.controlQubit ?? 0}], qubits[${g.qubit}]))`);
+        break;
+      case "CRZ":
+        lines.push(`circuit.append(cirq.ControlledGate(cirq.rz(${angle.toFixed(4)}))(qubits[${g.controlQubit ?? 0}], qubits[${g.qubit}]))`);
+        break;
+      case "M":
+        lines.push(`circuit.append(cirq.measure(qubits[${g.qubit}], key='m${g.qubit}'))`);
+        break;
+    }
+  }
+
+  lines.push("");
+  lines.push("print(circuit)");
+
+  return lines.join("\n");
+}
+
+function generateCppCode(circuit: CircuitState): string {
+  const lines: string[] = [
+    "#include <iostream>",
+    '#include "staq/qasmtools.hpp"',
+    "",
+    "int main() {",
+    `    const int N = ${circuit.qubits};`,
+    "",
+  ];
+
+  const sorted = [...circuit.gates].sort((a, b) => a.step - b.step || a.qubit - b.qubit);
+
+  for (const g of sorted) {
+    const angle = g.params?.angle ?? Math.PI;
+    switch (g.gate) {
+      case "H":
+        lines.push(`    apply_gate("h", {${g.qubit}});`);
+        break;
+      case "X":
+        lines.push(`    apply_gate("x", {${g.qubit}});`);
+        break;
+      case "Y":
+        lines.push(`    apply_gate("y", {${g.qubit}});`);
+        break;
+      case "Z":
+        lines.push(`    apply_gate("z", {${g.qubit}});`);
+        break;
+      case "S":
+        lines.push(`    apply_gate("s", {${g.qubit}});`);
+        break;
+      case "T":
+        lines.push(`    apply_gate("t", {${g.qubit}});`);
+        break;
+      case "SX":
+        lines.push(`    apply_gate("sx", {${g.qubit}});`);
+        break;
+      case "SDG":
+        lines.push(`    apply_gate("sdg", {${g.qubit}});`);
+        break;
+      case "TDG":
+        lines.push(`    apply_gate("tdg", {${g.qubit}});`);
+        break;
+      case "RX":
+        lines.push(`    apply_gate("rx", {${g.qubit}}, ${angle.toFixed(4)});`);
+        break;
+      case "RY":
+        lines.push(`    apply_gate("ry", {${g.qubit}}, ${angle.toFixed(4)});`);
+        break;
+      case "RZ":
+        lines.push(`    apply_gate("rz", {${g.qubit}}, ${angle.toFixed(4)});`);
+        break;
+      case "CNOT":
+        lines.push(`    apply_gate("cx", {${g.controlQubit ?? 0}, ${g.qubit}});`);
+        break;
+      case "CZ":
+        lines.push(`    apply_gate("cz", {${g.controlQubit ?? 0}, ${g.qubit}});`);
+        break;
+      case "SWAP":
+        lines.push(`    apply_gate("swap", {${g.controlQubit ?? 0}, ${g.qubit}});`);
+        break;
+      case "CCX":
+        lines.push(`    apply_gate("ccx", {${g.controlQubit ?? 0}, ${(g.controlQubit ?? 0) + 1}, ${g.qubit}});`);
+        break;
+      case "CRX":
+        lines.push(`    apply_gate("crx", {${g.controlQubit ?? 0}, ${g.qubit}}, ${angle.toFixed(4)});`);
+        break;
+      case "CRY":
+        lines.push(`    apply_gate("cry", {${g.controlQubit ?? 0}, ${g.qubit}}, ${angle.toFixed(4)});`);
+        break;
+      case "CRZ":
+        lines.push(`    apply_gate("crz", {${g.controlQubit ?? 0}, ${g.qubit}}, ${angle.toFixed(4)});`);
+        break;
+      case "M":
+        lines.push(`    measure(${g.qubit});`);
+        break;
+    }
+  }
+
+  lines.push("");
+  lines.push("    return 0;");
+  lines.push("}");
+
+  return lines.join("\n");
+}
+
+function generateJavaCode(circuit: CircuitState): string {
+  const lines: string[] = [
+    "import org.redfx.strange.*;",
+    "import org.redfx.strange.gate.*;",
+    "",
+    "public class QuantumCircuit {",
+    "    public static void main(String[] args) {",
+    `        Program program = new Program(${circuit.qubits});`,
+    "",
+  ];
+
+  const stepMap = new Map<number, string[]>();
+  const sorted = [...circuit.gates].sort((a, b) => a.step - b.step || a.qubit - b.qubit);
+
+  for (const g of sorted) {
+    if (!stepMap.has(g.step)) stepMap.set(g.step, []);
+    const stepGates = stepMap.get(g.step)!;
+    const angle = g.params?.angle ?? Math.PI;
+
+    switch (g.gate) {
+      case "H":
+        stepGates.push(`new Hadamard(${g.qubit})`);
+        break;
+      case "X":
+        stepGates.push(`new X(${g.qubit})`);
+        break;
+      case "Y":
+        stepGates.push(`new Y(${g.qubit})`);
+        break;
+      case "Z":
+        stepGates.push(`new Z(${g.qubit})`);
+        break;
+      case "S":
+        stepGates.push(`new S(${g.qubit})`);
+        break;
+      case "T":
+        stepGates.push(`new T(${g.qubit})`);
+        break;
+      case "SX":
+        stepGates.push(`new SX(${g.qubit})`);
+        break;
+      case "SDG":
+        stepGates.push(`new Sdg(${g.qubit})`);
+        break;
+      case "TDG":
+        stepGates.push(`new Tdg(${g.qubit})`);
+        break;
+      case "RX":
+        stepGates.push(`new Rx(${g.qubit}, ${angle.toFixed(4)})`);
+        break;
+      case "RY":
+        stepGates.push(`new Ry(${g.qubit}, ${angle.toFixed(4)})`);
+        break;
+      case "RZ":
+        stepGates.push(`new Rz(${g.qubit}, ${angle.toFixed(4)})`);
+        break;
+      case "CNOT":
+        stepGates.push(`new Cnot(${g.controlQubit ?? 0}, ${g.qubit})`);
+        break;
+      case "CZ":
+        stepGates.push(`new Cz(${g.controlQubit ?? 0}, ${g.qubit})`);
+        break;
+      case "SWAP":
+        stepGates.push(`new Swap(${g.controlQubit ?? 0}, ${g.qubit})`);
+        break;
+      case "CCX":
+        stepGates.push(`new Toffoli(${g.controlQubit ?? 0}, ${(g.controlQubit ?? 0) + 1}, ${g.qubit})`);
+        break;
+      case "CRX":
+        stepGates.push(`new Crx(${g.controlQubit ?? 0}, ${g.qubit}, ${angle.toFixed(4)})`);
+        break;
+      case "CRY":
+        stepGates.push(`new Cry(${g.controlQubit ?? 0}, ${g.qubit}, ${angle.toFixed(4)})`);
+        break;
+      case "CRZ":
+        stepGates.push(`new Crz(${g.controlQubit ?? 0}, ${g.qubit}, ${angle.toFixed(4)})`);
+        break;
+      case "M":
+        stepGates.push(`new Measurement(${g.qubit})`);
+        break;
+    }
+  }
+
+  Array.from(stepMap.entries()).forEach(([, gates]) => {
+    lines.push(`        program.addStep(new Step(${gates.join(", ")}));`);
+  });
+
+  lines.push("");
+  lines.push("        SimpleQuantumExecutionEnvironment sqee = new SimpleQuantumExecutionEnvironment();");
+  lines.push("        Result result = sqee.runProgram(program);");
+  lines.push("        Qubit[] qubits = result.getQubits();");
+  lines.push("    }");
+  lines.push("}");
+
+  return lines.join("\n");
+}
+
+function BlochSphere({ theta, phi }: { theta: number; phi: number }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const w = canvas.width;
+    const h = canvas.height;
+    const cx = w / 2;
+    const cy = h / 2;
+    const r = 75;
+
+    ctx.clearRect(0, 0, w, h);
+
+    ctx.strokeStyle = "rgba(128, 128, 128, 0.3)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(128, 128, 128, 0.2)";
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, r, r * 0.3, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(128, 128, 128, 0.15)";
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, r * 0.3, r, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(128, 128, 128, 0.4)";
+    ctx.lineWidth = 1;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r - 10);
+    ctx.lineTo(cx, cy + r + 10);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(cx - r - 10, cy);
+    ctx.lineTo(cx + r + 10, cy);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + r * 0.3 * Math.cos(Math.PI / 4), cy - r * 0.3 * Math.sin(Math.PI / 4));
+    ctx.stroke();
+
+    const fontSize = 10;
+    ctx.font = `${fontSize}px monospace`;
+    ctx.fillStyle = "rgba(128, 128, 128, 0.8)";
+    ctx.textAlign = "center";
+
+    ctx.fillText("|0\u27E9", cx + 12, cy - r - 12);
+    ctx.fillText("|1\u27E9", cx + 12, cy + r + 16);
+    ctx.fillText("|+\u27E9", cx + r + 14, cy + 4);
+    ctx.fillText("|-\u27E9", cx - r - 14, cy + 4);
+    ctx.fillText("|+i\u27E9", cx + r * 0.3 + 16, cy - r * 0.3 - 4);
+    ctx.fillText("|-i\u27E9", cx - r * 0.3 - 16, cy + r * 0.3 + 10);
+
+    const sx = Math.sin(theta) * Math.cos(phi);
+    const sy = Math.sin(theta) * Math.sin(phi);
+    const sz = Math.cos(theta);
+
+    const projX = cx + r * (sx + sy * 0.3 * Math.cos(Math.PI / 4));
+    const projY = cy - r * (sz - sy * 0.3 * Math.sin(Math.PI / 4));
+
+    ctx.strokeStyle = "#3b82f6";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(projX, projY);
+    ctx.stroke();
+
+    const arrowLen = 8;
+    const dx = projX - cx;
+    const dy = projY - cy;
+    const mag = Math.sqrt(dx * dx + dy * dy);
+    if (mag > 0) {
+      const ux = dx / mag;
+      const uy = dy / mag;
+      const perpX = -uy;
+      const perpY = ux;
+      ctx.fillStyle = "#3b82f6";
+      ctx.beginPath();
+      ctx.moveTo(projX, projY);
+      ctx.lineTo(projX - arrowLen * ux + arrowLen * 0.4 * perpX, projY - arrowLen * uy + arrowLen * 0.4 * perpY);
+      ctx.lineTo(projX - arrowLen * ux - arrowLen * 0.4 * perpX, projY - arrowLen * uy - arrowLen * 0.4 * perpY);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    ctx.fillStyle = "#3b82f6";
+    ctx.beginPath();
+    ctx.arc(projX, projY, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }, [theta, phi]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={200}
+      height={200}
+      className="mx-auto"
+      data-testid="canvas-bloch-sphere"
+    />
+  );
 }
 
 function GatePalette({
@@ -382,7 +877,7 @@ function CircuitGrid({
                       }}
                       data-testid={`gate-${g.id}`}
                     >
-                      {g.gate === "CNOT" ? "\u2295" : g.gate}
+                      {g.gate === "CNOT" ? "\u2295" : (def?.label ?? g.gate)}
                     </div>
                     <div
                       className="absolute rounded-full cursor-pointer"
@@ -441,7 +936,7 @@ function CircuitGrid({
                   {g.gate === "M" ? (
                     <span className="text-[14px]">&#x2316;</span>
                   ) : (
-                    g.gate
+                    (def?.label ?? g.gate)
                   )}
                 </div>
               );
@@ -462,8 +957,10 @@ function PropertiesPanel({
   onRemoveGate,
   onSave,
   isSaving,
-  onExportQasm,
+  onExport,
   onSubmitJob,
+  blochTheta,
+  blochPhi,
 }: {
   circuit: CircuitState;
   setCircuit: React.Dispatch<React.SetStateAction<CircuitState>>;
@@ -472,8 +969,10 @@ function PropertiesPanel({
   onRemoveGate: (id: string) => void;
   onSave: () => void;
   isSaving: boolean;
-  onExportQasm: () => void;
+  onExport: () => void;
   onSubmitJob: () => void;
+  blochTheta: number;
+  blochPhi: number;
 }) {
   const def = selectedGate
     ? GATE_DEFINITIONS.find((d) => d.name === selectedGate.gate)
@@ -485,6 +984,16 @@ function PropertiesPanel({
         <CardTitle className="text-sm">Properties</CardTitle>
       </CardHeader>
       <CardContent className="p-3 pt-0 flex-1 flex flex-col gap-4">
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">
+            Bloch Sphere
+          </label>
+          <BlochSphere theta={blochTheta} phi={blochPhi} />
+          <div className="text-[10px] text-muted-foreground text-center">
+            {"\u03B8"}={((blochTheta / Math.PI) * 180).toFixed(0)}{"\u00B0"} {"\u03C6"}={((blochPhi / Math.PI) * 180).toFixed(0)}{"\u00B0"}
+          </div>
+        </div>
+
         <div className="space-y-2">
           <label className="text-xs font-medium text-muted-foreground">
             Circuit Name
@@ -595,11 +1104,11 @@ function PropertiesPanel({
           <Button
             variant="outline"
             className="w-full"
-            onClick={onExportQasm}
+            onClick={onExport}
             data-testid="button-export-qasm"
           >
             <FileCode className="w-4 h-4" />
-            Export OpenQASM
+            Export Code
           </Button>
           <Button
             variant="outline"
@@ -632,13 +1141,82 @@ export default function Composer() {
     null
   );
   const [selectedGateId, setSelectedGateId] = useState<string | null>(null);
-  const [qasmDialogOpen, setQasmDialogOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportLanguage, setExportLanguage] = useState("qasm");
   const [jobDialogOpen, setJobDialogOpen] = useState(false);
   const [jobShots, setJobShots] = useState(1024);
   const [jobBackendId, setJobBackendId] = useState("");
+  const [blochTheta, setBlochTheta] = useState(0);
+  const [blochPhi, setBlochPhi] = useState(0);
 
   const selectedGate =
     circuit.gates.find((g) => g.id === selectedGateId) ?? null;
+
+  useEffect(() => {
+    if (!selectedGate) {
+      setBlochTheta(0);
+      setBlochPhi(0);
+      return;
+    }
+    const angle = selectedGate.params?.angle ?? Math.PI;
+    switch (selectedGate.gate) {
+      case "H":
+        setBlochTheta(Math.PI / 4);
+        setBlochPhi(0);
+        break;
+      case "X":
+        setBlochTheta(Math.PI);
+        setBlochPhi(0);
+        break;
+      case "Y":
+        setBlochTheta(Math.PI);
+        setBlochPhi(Math.PI / 2);
+        break;
+      case "Z":
+        setBlochTheta(0);
+        setBlochPhi(Math.PI);
+        break;
+      case "RX":
+      case "CRX":
+        setBlochTheta(angle);
+        setBlochPhi(0);
+        break;
+      case "RY":
+      case "CRY":
+        setBlochTheta(angle);
+        setBlochPhi(Math.PI / 2);
+        break;
+      case "RZ":
+      case "CRZ":
+        setBlochTheta(0);
+        setBlochPhi(angle);
+        break;
+      case "S":
+        setBlochTheta(0);
+        setBlochPhi(Math.PI / 2);
+        break;
+      case "T":
+        setBlochTheta(0);
+        setBlochPhi(Math.PI / 4);
+        break;
+      case "SX":
+        setBlochTheta(Math.PI / 2);
+        setBlochPhi(0);
+        break;
+      case "SDG":
+        setBlochTheta(0);
+        setBlochPhi(-Math.PI / 2);
+        break;
+      case "TDG":
+        setBlochTheta(0);
+        setBlochPhi(-Math.PI / 4);
+        break;
+      default:
+        setBlochTheta(0);
+        setBlochPhi(0);
+        break;
+    }
+  }, [selectedGate]);
 
   const { data: backends } = useQuery<Backend[]>({
     queryKey: ["/api/backends"],
@@ -758,7 +1336,7 @@ export default function Composer() {
     }));
   };
 
-  const handleExportQasm = () => setQasmDialogOpen(true);
+  const handleExport = () => setExportDialogOpen(true);
 
   const handleSubmitJob = async () => {
     try {
@@ -780,7 +1358,24 @@ export default function Composer() {
     }
   };
 
-  const qasmText = generateQASM(circuit);
+  const getExportCode = () => {
+    switch (exportLanguage) {
+      case "qasm":
+        return generateQASM(circuit);
+      case "qiskit":
+        return generateQiskitCode(circuit);
+      case "cirq":
+        return generateCirqCode(circuit);
+      case "cpp":
+        return generateCppCode(circuit);
+      case "java":
+        return generateJavaCode(circuit);
+      default:
+        return generateQASM(circuit);
+    }
+  };
+
+  const exportCode = getExportCode();
 
   return (
     <div className="flex h-full gap-2 p-2" data-testid="composer-page">
@@ -850,41 +1445,57 @@ export default function Composer() {
           onRemoveGate={handleRemoveGate}
           onSave={() => saveMutation.mutate()}
           isSaving={saveMutation.isPending}
-          onExportQasm={handleExportQasm}
+          onExport={handleExport}
           onSubmitJob={handleSubmitJob}
+          blochTheta={blochTheta}
+          blochPhi={blochPhi}
         />
       </div>
 
-      <Dialog open={qasmDialogOpen} onOpenChange={setQasmDialogOpen}>
-        <DialogContent className="max-w-lg">
+      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>OpenQASM 2.0</DialogTitle>
+            <DialogTitle>Export Circuit Code</DialogTitle>
             <DialogDescription>
-              Generated QASM code for your circuit
+              Choose a language format and copy the generated code
             </DialogDescription>
           </DialogHeader>
-          <div className="relative">
-            <pre className="bg-muted rounded-md p-3 text-xs font-mono whitespace-pre-wrap max-h-[300px] overflow-auto">
-              {qasmText}
-            </pre>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="absolute top-1 right-1"
-              onClick={() => {
-                navigator.clipboard.writeText(qasmText);
-                toast({ title: "Copied to clipboard" });
-              }}
-              data-testid="button-copy-qasm"
-            >
-              <Copy className="w-3 h-3" />
-            </Button>
-          </div>
+          <Tabs value={exportLanguage} onValueChange={setExportLanguage} className="w-full">
+            <TabsList className="w-full">
+              <TabsTrigger value="qasm" data-testid="tab-export-qasm">OpenQASM</TabsTrigger>
+              <TabsTrigger value="qiskit" data-testid="tab-export-qiskit">Qiskit</TabsTrigger>
+              <TabsTrigger value="cirq" data-testid="tab-export-cirq">Cirq</TabsTrigger>
+              <TabsTrigger value="cpp" data-testid="tab-export-cpp">C++</TabsTrigger>
+              <TabsTrigger value="java" data-testid="tab-export-java">Java</TabsTrigger>
+            </TabsList>
+            <TabsContent value={exportLanguage} className="mt-3">
+              <div className="relative">
+                <pre
+                  className="bg-muted rounded-md p-3 text-xs font-mono whitespace-pre-wrap max-h-[350px] overflow-auto"
+                  data-testid="text-export-code"
+                >
+                  {exportCode}
+                </pre>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="absolute top-1 right-1"
+                  onClick={() => {
+                    navigator.clipboard.writeText(exportCode);
+                    toast({ title: "Copied to clipboard" });
+                  }}
+                  data-testid="button-copy-export"
+                >
+                  <Copy className="w-3 h-3" />
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setQasmDialogOpen(false)}
-              data-testid="button-close-qasm"
+              onClick={() => setExportDialogOpen(false)}
+              data-testid="button-close-export"
             >
               Close
             </Button>
