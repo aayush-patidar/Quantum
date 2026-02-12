@@ -2,7 +2,7 @@
 
 ## Overview
 
-QuantumCloud is a full-stack web application that serves as a quantum computing cloud platform. It allows users to design quantum circuits, submit simulation jobs to various backends, and visualize results. The app features a circuit composer (visual editor), job queue management, backend status monitoring, and result visualization with charts.
+QuantumCloud is a full-stack web application that serves as a quantum computing cloud platform. It allows users to design quantum circuits, submit simulation jobs to various backends, and visualize results. The platform includes a visual circuit composer with Bloch sphere visualization, multi-language code export, job queue management, 24 quantum backends from 11 providers, AI-powered quantum expert assistant, credit system, API key management, support ticketing, documentation hub, education courses, and hackathon organization.
 
 The project follows a monorepo structure with a React frontend, Express backend, and PostgreSQL database using Drizzle ORM.
 
@@ -33,20 +33,33 @@ Preferred communication style: Simple, everyday language.
 **Key Pages:**
 - `/login` — Authentication (login/register with tabs)
 - `/` — Dashboard with job stats and recent activity
-- `/composer` — Visual quantum circuit editor
+- `/composer` — Visual quantum circuit editor with 20 gates, Bloch sphere, multi-language export
 - `/circuits` — User's saved circuits list
 - `/jobs` — Job queue with filtering by status and algorithm type
-- `/backends` — Available quantum backends and their status
+- `/backends` — 24 quantum backends from IBM, AWS, AQT, IQM, Pasqal, QuEra, Rigetti, Quantinuum, NEC, PennyLane
 - `/results` — Job results with measurement histograms
+- `/settings` — Account settings (profile, security, API keys with 24hr cooldown, credits/billing)
+- `/support` — Support ticket system with messaging
+- `/assistant` — AI quantum expert chat (GPT-4o powered, SSE streaming)
+- `/documentation` — Static documentation hub (getting started, API reference, algorithms, SDKs)
+- `/education` — Course catalog with difficulty filtering
+- `/hackathon` — Hackathon listings with status/difficulty filters
+
+**Sidebar Navigation Groups:**
+- Platform: Dashboard, Circuit Composer, My Circuits, Jobs, Backends, Results
+- Tools & Learning: AI Assistant, Documentation, Education, Hackathons
+- Account: Settings, Support
 
 ### Backend
 - **Framework**: Express 5 on Node.js
 - **Language**: TypeScript, run via `tsx` in development
 - **API Pattern**: REST API under `/api/` prefix
 - **Session Management**: express-session with MemoryStore (development) — connect-pg-simple is available for production
-- **Authentication**: Custom implementation using scrypt password hashing with session-based auth. No external auth libraries like Passport are actively used in routes despite being in dependencies.
-- **Middleware**: Request logging for API routes with timing, JSON body parsing with raw body preservation (for potential webhook verification)
-- **Quantum Simulation**: Jobs are simulated server-side with randomized measurement results and artificial delays to mimic real quantum execution
+- **Authentication**: Custom implementation using scrypt password hashing with session-based auth
+- **AI Assistant**: OpenAI GPT-4o via Replit AI Integrations, SSE streaming responses
+- **Quantum Simulation**: Jobs are simulated server-side with randomized measurement results and artificial delays
+- **Credit System**: 660 seconds (11 minutes) initial balance, jobs cost shots * 0.001 credits
+- **API Key Management**: SHA-256 hashed keys with 24-hour generation cooldown
 
 ### Database
 - **Database**: PostgreSQL (required, via `DATABASE_URL` environment variable)
@@ -54,36 +67,54 @@ Preferred communication style: Simple, everyday language.
 - **Schema Push**: `npm run db:push` uses drizzle-kit to push schema changes directly
 
 **Key Tables:**
-- `users` — User accounts with roles (admin, researcher, enterprise_user, student)
+- `users` — User accounts with roles (admin, researcher, enterprise_user, student), credit_balance field
 - `organizations` — Multi-tenant organization support with plan tiers (free, academic, enterprise)
 - `circuits` — Quantum circuit definitions with QASM and JSON circuit data, versioning, visibility controls
-- `quantum_backends` — Available backends (IBM, local simulator, PennyLane) with status tracking
-- `jobs` — Job queue with status tracking (queued, running, completed, failed, cancelled) and algorithm type classification
+- `quantum_backends` — 24 backends from 11 providers (ibm, aws, aqt, iqm, pasqal, quera, rigetti, quantinuum, nec, local_simulator, pennylane)
+- `jobs` — Job queue with status tracking and credit deduction
 - `job_results` — Measurement results and metadata for completed jobs
+- `api_keys` — User API keys with SHA-256 hashing, prefix display, 24hr cooldown
+- `support_tickets` — Support tickets with status/priority/category tracking
+- `support_messages` — Message threads within support tickets
+- `assistant_threads` — AI assistant conversation threads
+- `assistant_messages` — Messages within assistant threads (user and assistant roles)
 
 All primary keys use UUID generation via `gen_random_uuid()`.
+
+### API Routes
+- **Auth**: `/api/auth/register`, `/api/auth/login`, `/api/auth/logout`, `/api/auth/me`
+- **Profile**: `PATCH /api/profile`, `POST /api/profile/change-password`
+- **Circuits**: CRUD at `/api/circuits`
+- **Backends**: `GET /api/backends`, `GET /api/backends/:id`
+- **Jobs**: CRUD at `/api/jobs` (POST requires credit balance)
+- **Results**: `GET /api/results/:jobId`
+- **Dashboard**: `GET /api/dashboard/stats`, `/api/dashboard/recent-jobs`, `/api/dashboard/recent-circuits`
+- **API Keys**: `GET /api/keys`, `POST /api/keys` (24hr cooldown), `DELETE /api/keys/:id`
+- **Credits**: `GET /api/credits`, `POST /api/credits/purchase`
+- **Support**: CRUD at `/api/support/tickets`, `POST /api/support/tickets/:id/messages`
+- **Assistant**: `GET/POST /api/assistant/threads`, `GET/POST /api/assistant/threads/:id/messages` (SSE streaming)
 
 ### Build System
 - **Development**: Vite dev server with HMR proxied through Express
 - **Production Build**: Two-step — Vite builds the client to `dist/public/`, esbuild bundles the server to `dist/index.cjs`
 - **Server bundling**: Select dependencies are bundled (allowlisted) to reduce cold start syscalls; others are kept external
 
-### Authentication Flow
-- Session-based auth stored server-side
-- `/api/auth/register` — Create account
-- `/api/auth/login` — Login with username/password
-- `/api/auth/logout` — Destroy session
-- `/api/auth/me` — Get current user (returns 401 if not authenticated)
-- `requireAuth` middleware protects API routes
+### Circuit Composer Features
+- **Gate Palette**: 20 gates across 5 categories (Single Qubit: H, X, Y, Z, S, T, SX, SDG, TDG; Rotation: RX, RY, RZ; Multi-Qubit: CNOT, CZ, SWAP, CCX; Controlled Rotations: CRX, CRY, CRZ; Measurement: M)
+- **Bloch Sphere**: Canvas-based 3D visualization of qubit state
+- **Multi-Language Export**: OpenQASM, Python/Qiskit, Cirq, C++ (Staq), Java (Strange)
+- **Circuit Grid**: Interactive visual editor with qubit wires and gate placement
 
 ## External Dependencies
 
 ### Required Services
-- **PostgreSQL**: Primary database. Must be provisioned and `DATABASE_URL` environment variable must be set. Used for all data storage including sessions (connect-pg-simple available).
+- **PostgreSQL**: Primary database via `DATABASE_URL` environment variable
+- **OpenAI API**: For AI assistant (via Replit AI Integrations, uses `AI_INTEGRATIONS_OPENAI_API_KEY`)
 
 ### Key NPM Dependencies
 - **drizzle-orm** + **drizzle-kit**: Database ORM and migration tooling
 - **express**: HTTP server framework (v5)
+- **openai**: OpenAI client for AI assistant
 - **@tanstack/react-query**: Async state management
 - **recharts**: Data visualization for quantum measurement results
 - **zod** + **drizzle-zod**: Schema validation
