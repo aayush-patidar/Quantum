@@ -1,382 +1,382 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, real, jsonb, timestamp, pgEnum, boolean } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const userRoleEnum = pgEnum("user_role", ["admin", "researcher", "enterprise_user", "student"]);
-export const orgPlanEnum = pgEnum("org_plan", ["free", "academic", "enterprise"]);
-export const visibilityEnum = pgEnum("visibility", ["private", "team", "public"]);
-export const providerEnum = pgEnum("provider", ["ibm", "local_simulator", "pennylane", "aqt", "aws", "nec", "iqm", "pasqal", "quera", "rigetti", "quantinuum"]);
-export const backendTypeEnum = pgEnum("backend_type", ["simulator", "real_device"]);
-export const backendStatusEnum = pgEnum("backend_status", ["online", "offline", "maintenance"]);
-export const jobStatusEnum = pgEnum("job_status", ["queued", "running", "completed", "failed", "cancelled"]);
-export const algorithmTypeEnum = pgEnum("algorithm_type", ["raw_circuit", "vqe", "qaoa", "qml"]);
-export const ticketStatusEnum = pgEnum("ticket_status", ["open", "in_progress", "resolved", "closed"]);
-export const ticketPriorityEnum = pgEnum("ticket_priority", ["low", "medium", "high", "critical"]);
+// Enums (simulated in SQLite as text check constraints or application logic)
+export const userRoleEnum = z.enum(["admin", "researcher", "enterprise_user", "student"]);
+export const orgPlanEnum = z.enum(["free", "academic", "enterprise"]);
+export const visibilityEnum = z.enum(["private", "team", "public"]);
+export const providerEnum = z.enum(["ibm", "local_simulator", "pennylane", "aqt", "aws", "nec", "iqm", "pasqal", "quera", "rigetti", "quantinuum"]);
+export const backendTypeEnum = z.enum(["simulator", "real_device"]);
+export const backendStatusEnum = z.enum(["online", "offline", "maintenance"]);
+export const jobStatusEnum = z.enum(["queued", "running", "completed", "failed", "cancelled"]);
+export const algorithmTypeEnum = z.enum(["raw_circuit", "vqe", "qaoa", "qml"]);
+export const ticketStatusEnum = z.enum(["open", "in_progress", "resolved", "closed"]);
+export const ticketPriorityEnum = z.enum(["low", "medium", "high", "critical"]);
+export const experienceLevelEnum = z.enum(["beginner", "intermediate", "expert"]);
+export const workspaceStatusEnum = z.enum(["creating", "running", "stopped", "expired", "error"]);
+export const templateDomainEnum = z.enum(["finance", "chemistry", "optimization", "security", "smart_grid", "business_analytics"]);
+export const labDifficultyEnum = z.enum(["beginner", "intermediate", "advanced"]);
+export const compilationProfileEnum = z.enum(["fast", "balanced", "high_fidelity"]);
+export const mitigationProfileEnum = z.enum(["none", "fast", "balanced", "high_fidelity"]);
+export const backendModeEnum = z.enum(["explicit", "auto"]);
+export const courseRoleEnum = z.enum(["instructor", "student"]);
+export const networkProtocolEnum = z.enum(["teleportation", "qkd", "entanglement_swapping"]);
 
-export const experienceLevelEnum = pgEnum("experience_level", ["beginner", "intermediate", "expert"]);
-export const workspaceStatusEnum = pgEnum("workspace_status", ["creating", "running", "stopped", "expired", "error"]);
-export const templateDomainEnum = pgEnum("template_domain", ["finance", "chemistry", "optimization", "security", "smart_grid", "business_analytics"]);
-export const labDifficultyEnum = pgEnum("lab_difficulty", ["beginner", "intermediate", "advanced"]);
-export const compilationProfileEnum = pgEnum("compilation_profile", ["fast", "balanced", "high_fidelity"]);
-export const mitigationProfileEnum = pgEnum("mitigation_profile", ["none", "fast", "balanced", "high_fidelity"]);
-export const backendModeEnum = pgEnum("backend_mode", ["explicit", "auto"]);
-export const courseRoleEnum = pgEnum("course_role", ["instructor", "student"]);
-export const networkProtocolEnum = pgEnum("network_protocol", ["teleportation", "qkd", "entanglement_swapping"]);
-
-export const organizations = pgTable("organizations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+export const organizations = sqliteTable("organizations", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
-  plan: orgPlanEnum("plan").notNull().default("free"),
-  allowedBackends: text("allowed_backends").array(),
-  allowedAlgorithms: text("allowed_algorithms").array(),
+  plan: text("plan").notNull().default("free"), // orgPlanEnum
+  allowedBackends: text("allowed_backends", { mode: "json" }), // array
+  allowedAlgorithms: text("allowed_algorithms", { mode: "json" }), // array
   maxJobsPerDay: integer("max_jobs_per_day").default(100),
   maxConcurrentJobs: integer("max_concurrent_jobs").default(5),
   maxCredits: real("max_credits").default(10000),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
-  role: userRoleEnum("role").notNull().default("researcher"),
-  organizationId: varchar("organization_id").references(() => organizations.id),
+  role: text("role").notNull().default("researcher"), // userRoleEnum
+  organizationId: text("organization_id").references(() => organizations.id),
   displayName: text("display_name"),
   company: text("company"),
   phone: text("phone"),
   bio: text("bio"),
   creditBalance: real("credit_balance").notNull().default(660),
-  experienceLevel: experienceLevelEnum("experience_level").notNull().default("beginner"),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  experienceLevel: text("experience_level").notNull().default("beginner"), // experienceLevelEnum
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const circuits = pgTable("circuits", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+export const circuits = sqliteTable("circuits", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   description: text("description"),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  organizationId: varchar("organization_id").references(() => organizations.id),
+  userId: text("user_id").notNull().references(() => users.id),
+  organizationId: text("organization_id").references(() => organizations.id),
   qasm: text("qasm"),
-  circuitData: jsonb("circuit_data"),
-  tags: text("tags").array(),
-  visibility: visibilityEnum("visibility").notNull().default("private"),
+  circuitData: text("circuit_data", { mode: "json" }),
+  tags: text("tags", { mode: "json" }), // array
+  visibility: text("visibility").notNull().default("private"), // visibilityEnum
   version: integer("version").notNull().default(1),
-  parentId: varchar("parent_id"),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
-  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+  parentId: text("parent_id"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const quantumBackends = pgTable("quantum_backends", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+export const quantumBackends = sqliteTable("quantum_backends", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
-  provider: providerEnum("provider").notNull(),
-  backendType: backendTypeEnum("backend_type").notNull(),
+  provider: text("provider").notNull(), // providerEnum
+  backendType: text("backend_type").notNull(), // backendTypeEnum
   qubitCount: integer("qubit_count").notNull(),
-  status: backendStatusEnum("status").notNull().default("online"),
-  properties: jsonb("properties"),
+  status: text("status").notNull().default("online"), // backendStatusEnum
+  properties: text("properties", { mode: "json" }),
   queueDepth: integer("queue_depth").notNull().default(0),
 });
 
-export const jobs = pgTable("jobs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  circuitId: varchar("circuit_id").notNull().references(() => circuits.id),
-  backendId: varchar("backend_id").notNull().references(() => quantumBackends.id),
-  status: jobStatusEnum("status").notNull().default("queued"),
-  algorithmType: algorithmTypeEnum("algorithm_type").notNull().default("raw_circuit"),
+export const jobs = sqliteTable("jobs", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => users.id),
+  circuitId: text("circuit_id").notNull().references(() => circuits.id),
+  backendId: text("backend_id").notNull().references(() => quantumBackends.id),
+  status: text("status").notNull().default("queued"), // jobStatusEnum
+  algorithmType: text("algorithm_type").notNull().default("raw_circuit"), // algorithmTypeEnum
   shots: integer("shots").notNull(),
-  parameters: jsonb("parameters"),
+  parameters: text("parameters", { mode: "json" }),
   priority: integer("priority").notNull().default(0),
   providerJobId: text("provider_job_id"),
   creditsUsed: real("credits_used").default(0),
-  backendMode: backendModeEnum("backend_mode").notNull().default("explicit"),
-  compilationProfile: compilationProfileEnum("compilation_profile").notNull().default("balanced"),
-  mitigationProfile: mitigationProfileEnum("mitigation_profile").notNull().default("none"),
+  backendMode: text("backend_mode").notNull().default("explicit"), // backendModeEnum
+  compilationProfile: text("compilation_profile").notNull().default("balanced"), // compilationProfileEnum
+  mitigationProfile: text("mitigation_profile").notNull().default("none"), // mitigationProfileEnum
   reliabilityScore: integer("reliability_score"),
   reliabilityLabel: text("reliability_label"),
-  isTrustedRun: boolean("is_trusted_run").notNull().default(false),
+  isTrustedRun: integer("is_trusted_run", { mode: "boolean" }).notNull().default(false),
   manifestHash: text("manifest_hash"),
   routerRationale: text("router_rationale"),
-  classicalBaselineId: varchar("classical_baseline_id"),
-  submittedAt: timestamp("submitted_at").notNull().default(sql`now()`),
-  startedAt: timestamp("started_at"),
-  completedAt: timestamp("completed_at"),
+  classicalBaselineId: text("classical_baseline_id"),
+  submittedAt: text("submitted_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  startedAt: text("started_at"),
+  completedAt: text("completed_at"),
   errorMessage: text("error_message"),
 });
 
-export const jobResults = pgTable("job_results", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  jobId: varchar("job_id").notNull().references(() => jobs.id),
-  measurements: jsonb("measurements").notNull(),
-  expectationValues: jsonb("expectation_values"),
-  convergenceData: jsonb("convergence_data"),
+export const jobResults = sqliteTable("job_results", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  jobId: text("job_id").notNull().references(() => jobs.id),
+  measurements: text("measurements", { mode: "json" }).notNull(),
+  expectationValues: text("expectation_values", { mode: "json" }),
+  convergenceData: text("convergence_data", { mode: "json" }),
   executionTime: real("execution_time").notNull(),
-  metadata: jsonb("metadata"),
+  metadata: text("metadata", { mode: "json" }),
 });
 
-export const apiKeys = pgTable("api_keys", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
+export const apiKeys = sqliteTable("api_keys", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => users.id),
   keyHash: text("key_hash").notNull(),
   keyPrefix: text("key_prefix").notNull(),
   label: text("label").notNull().default("Default"),
-  lastUsedAt: timestamp("last_used_at"),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
-  revokedAt: timestamp("revoked_at"),
+  lastUsedAt: text("last_used_at"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  revokedAt: text("revoked_at"),
 });
 
-export const supportTickets = pgTable("support_tickets", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
+export const supportTickets = sqliteTable("support_tickets", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => users.id),
   subject: text("subject").notNull(),
   description: text("description").notNull(),
-  status: ticketStatusEnum("status").notNull().default("open"),
-  priority: ticketPriorityEnum("priority").notNull().default("medium"),
+  status: text("status").notNull().default("open"), // ticketStatusEnum
+  priority: text("priority").notNull().default("medium"), // ticketPriorityEnum
   category: text("category").notNull().default("general"),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
-  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const supportMessages = pgTable("support_messages", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  ticketId: varchar("ticket_id").notNull().references(() => supportTickets.id),
-  userId: varchar("user_id"),
-  isStaff: boolean("is_staff").notNull().default(false),
+export const supportMessages = sqliteTable("support_messages", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  ticketId: text("ticket_id").notNull().references(() => supportTickets.id),
+  userId: text("user_id"),
+  isStaff: integer("is_staff", { mode: "boolean" }).notNull().default(false),
   message: text("message").notNull(),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const assistantThreads = pgTable("assistant_threads", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
+export const assistantThreads = sqliteTable("assistant_threads", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => users.id),
   title: text("title").notNull().default("New Conversation"),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const assistantMessages = pgTable("assistant_messages", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  threadId: varchar("thread_id").notNull().references(() => assistantThreads.id),
+export const assistantMessages = sqliteTable("assistant_messages", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  threadId: text("thread_id").notNull().references(() => assistantThreads.id),
   role: text("role").notNull(),
   content: text("content").notNull(),
-  circuitIds: text("circuit_ids").array(),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  circuitIds: text("circuit_ids", { mode: "json" }), // array
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const useCaseJourneys = pgTable("use_case_journeys", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+export const useCaseJourneys = sqliteTable("use_case_journeys", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   description: text("description"),
-  algorithmType: algorithmTypeEnum("algorithm_type").notNull(),
-  domain: templateDomainEnum("domain").notNull(),
-  defaultParams: jsonb("default_params"),
-  steps: jsonb("steps"),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  algorithmType: text("algorithm_type").notNull(), // algorithmTypeEnum
+  domain: text("domain").notNull(), // templateDomainEnum
+  defaultParams: text("default_params", { mode: "json" }),
+  steps: text("steps", { mode: "json" }),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const learningLabs = pgTable("learning_labs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+export const learningLabs = sqliteTable("learning_labs", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   title: text("title").notNull(),
   description: text("description"),
-  difficulty: labDifficultyEnum("difficulty").notNull(),
+  difficulty: text("difficulty").notNull(), // labDifficultyEnum
   category: text("category"),
-  objectives: text("objectives").array(),
-  initialCircuit: jsonb("initial_circuit"),
-  expectedResults: jsonb("expected_results"),
-  hints: text("hints").array(),
+  objectives: text("objectives", { mode: "json" }), // array
+  initialCircuit: text("initial_circuit", { mode: "json" }),
+  expectedResults: text("expected_results", { mode: "json" }),
+  hints: text("hints", { mode: "json" }), // array
   estimatedMinutes: integer("estimated_minutes"),
   sortOrder: integer("sort_order"),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const labAttempts = pgTable("lab_attempts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  labId: varchar("lab_id").notNull().references(() => learningLabs.id),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  circuitData: jsonb("circuit_data"),
-  results: jsonb("results"),
-  passed: boolean("passed"),
+export const labAttempts = sqliteTable("lab_attempts", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  labId: text("lab_id").notNull().references(() => learningLabs.id),
+  userId: text("user_id").notNull().references(() => users.id),
+  circuitData: text("circuit_data", { mode: "json" }),
+  results: text("results", { mode: "json" }),
+  passed: integer("passed", { mode: "boolean" }),
   score: integer("score"),
   feedback: text("feedback"),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const workspaces = pgTable("workspaces", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
+export const workspaces = sqliteTable("workspaces", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => users.id),
   name: text("name").notNull(),
   framework: text("framework"),
-  status: workspaceStatusEnum("status").notNull().default("creating"),
-  config: jsonb("config"),
-  expiresAt: timestamp("expires_at"),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  status: text("status").notNull().default("creating"), // workspaceStatusEnum
+  config: text("config", { mode: "json" }),
+  expiresAt: text("expires_at"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const experimentSnapshots = pgTable("experiment_snapshots", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  jobId: varchar("job_id").notNull().references(() => jobs.id),
-  circuitId: varchar("circuit_id").notNull().references(() => circuits.id),
-  backendId: varchar("backend_id").notNull().references(() => quantumBackends.id),
+export const experimentSnapshots = sqliteTable("experiment_snapshots", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => users.id),
+  jobId: text("job_id").notNull().references(() => jobs.id),
+  circuitId: text("circuit_id").notNull().references(() => circuits.id),
+  backendId: text("backend_id").notNull().references(() => quantumBackends.id),
   code: text("code"),
   framework: text("framework"),
-  algorithmConfig: jsonb("algorithm_config"),
-  sdkVersions: jsonb("sdk_versions"),
+  algorithmConfig: text("algorithm_config", { mode: "json" }),
+  sdkVersions: text("sdk_versions", { mode: "json" }),
   notes: text("notes"),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const domainTemplates = pgTable("domain_templates", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+export const domainTemplates = sqliteTable("domain_templates", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   description: text("description"),
-  domain: templateDomainEnum("domain").notNull(),
-  algorithmType: algorithmTypeEnum("algorithm_type").notNull(),
-  circuitTemplate: jsonb("circuit_template"),
-  defaultParams: jsonb("default_params"),
-  inputSchema: jsonb("input_schema"),
-  tags: text("tags").array(),
+  domain: text("domain").notNull(), // templateDomainEnum
+  algorithmType: text("algorithm_type").notNull(), // algorithmTypeEnum
+  circuitTemplate: text("circuit_template", { mode: "json" }),
+  defaultParams: text("default_params", { mode: "json" }),
+  inputSchema: text("input_schema", { mode: "json" }),
+  tags: text("tags", { mode: "json" }), // array
   difficulty: text("difficulty"),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const classicalBaselines = pgTable("classical_baselines", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  jobId: varchar("job_id").notNull().references(() => jobs.id),
-  templateId: varchar("template_id").references(() => domainTemplates.id),
+export const classicalBaselines = sqliteTable("classical_baselines", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  jobId: text("job_id").notNull().references(() => jobs.id),
+  templateId: text("template_id").references(() => domainTemplates.id),
   algorithm: text("algorithm"),
-  result: jsonb("result"),
+  result: text("result", { mode: "json" }),
   accuracy: real("accuracy"),
   executionTime: real("execution_time"),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const courses = pgTable("courses", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+export const courses = sqliteTable("courses", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   title: text("title").notNull(),
   description: text("description"),
-  instructorId: varchar("instructor_id").notNull().references(() => users.id),
-  difficulty: labDifficultyEnum("difficulty").notNull(),
+  instructorId: text("instructor_id").notNull().references(() => users.id),
+  difficulty: text("difficulty").notNull(), // labDifficultyEnum
   category: text("category"),
-  tags: text("tags").array(),
-  isPublished: boolean("is_published").notNull().default(false),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
-  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+  tags: text("tags", { mode: "json" }), // array
+  isPublished: integer("is_published", { mode: "boolean" }).notNull().default(false),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const courseLessons = pgTable("course_lessons", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  courseId: varchar("course_id").notNull().references(() => courses.id),
+export const courseLessons = sqliteTable("course_lessons", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  courseId: text("course_id").notNull().references(() => courses.id),
   title: text("title").notNull(),
   content: text("content"),
   sortOrder: integer("sort_order"),
-  labId: varchar("lab_id").references(() => learningLabs.id),
-  circuitId: varchar("circuit_id").references(() => circuits.id),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  labId: text("lab_id").references(() => learningLabs.id),
+  circuitId: text("circuit_id").references(() => circuits.id),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const courseEnrollments = pgTable("course_enrollments", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  courseId: varchar("course_id").notNull().references(() => courses.id),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  role: courseRoleEnum("role").notNull().default("student"),
+export const courseEnrollments = sqliteTable("course_enrollments", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  courseId: text("course_id").notNull().references(() => courses.id),
+  userId: text("user_id").notNull().references(() => users.id),
+  role: text("role").notNull().default("student"), // courseRoleEnum
   progress: integer("progress").notNull().default(0),
-  completedLessons: text("completed_lessons").array(),
-  enrolledAt: timestamp("enrolled_at").notNull().default(sql`now()`),
+  completedLessons: text("completed_lessons", { mode: "json" }), // array
+  enrolledAt: text("enrolled_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const publicExperiments = pgTable("public_experiments", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  circuitId: varchar("circuit_id").references(() => circuits.id),
-  jobId: varchar("job_id").references(() => jobs.id),
-  snapshotId: varchar("snapshot_id").references(() => experimentSnapshots.id),
+export const publicExperiments = sqliteTable("public_experiments", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => users.id),
+  circuitId: text("circuit_id").references(() => circuits.id),
+  jobId: text("job_id").references(() => jobs.id),
+  snapshotId: text("snapshot_id").references(() => experimentSnapshots.id),
   title: text("title").notNull(),
   description: text("description"),
-  tags: text("tags").array(),
+  tags: text("tags", { mode: "json" }), // array
   likes: integer("likes").notNull().default(0),
   forks: integer("forks").notNull().default(0),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const orgUsageEvents = pgTable("org_usage_events", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  organizationId: varchar("organization_id").notNull().references(() => organizations.id),
-  userId: varchar("user_id").notNull().references(() => users.id),
+export const orgUsageEvents = sqliteTable("org_usage_events", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  organizationId: text("organization_id").notNull().references(() => organizations.id),
+  userId: text("user_id").notNull().references(() => users.id),
   eventType: text("event_type").notNull(),
   amount: real("amount").notNull().default(0),
-  metadata: jsonb("metadata"),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  metadata: text("metadata", { mode: "json" }),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const analyticsSnapshots = pgTable("analytics_snapshots", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  organizationId: varchar("organization_id").references(() => organizations.id),
+export const analyticsSnapshots = sqliteTable("analytics_snapshots", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  organizationId: text("organization_id").references(() => organizations.id),
   period: text("period").notNull(),
-  metrics: jsonb("metrics"),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  metrics: text("metrics", { mode: "json" }),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const optimizationTrajectories = pgTable("optimization_trajectories", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  jobId: varchar("job_id").notNull().references(() => jobs.id),
+export const optimizationTrajectories = sqliteTable("optimization_trajectories", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  jobId: text("job_id").notNull().references(() => jobs.id),
   iteration: integer("iteration").notNull(),
-  parameters: jsonb("parameters"),
+  parameters: text("parameters", { mode: "json" }),
   costValue: real("cost_value").notNull(),
   gradientNorm: real("gradient_norm").notNull(),
-  metadata: jsonb("metadata"),
+  metadata: text("metadata", { mode: "json" }),
 });
 
-export const jobDiagnostics = pgTable("job_diagnostics", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  jobId: varchar("job_id").notNull().references(() => jobs.id),
+export const jobDiagnostics = sqliteTable("job_diagnostics", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  jobId: text("job_id").notNull().references(() => jobs.id),
   category: text("category").notNull(),
   cause: text("cause"),
-  suggestions: text("suggestions").array(),
-  circuitProperties: jsonb("circuit_properties"),
-  backendMetadata: jsonb("backend_metadata"),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  suggestions: text("suggestions", { mode: "json" }), // array
+  circuitProperties: text("circuit_properties", { mode: "json" }),
+  backendMetadata: text("backend_metadata", { mode: "json" }),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const networkNodes = pgTable("network_nodes", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  experimentId: varchar("experiment_id"),
+export const networkNodes = sqliteTable("network_nodes", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  experimentId: text("experiment_id"),
   name: text("name").notNull(),
   nodeType: text("node_type"),
-  properties: jsonb("properties"),
+  properties: text("properties", { mode: "json" }),
 });
 
-export const networkChannels = pgTable("network_channels", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  experimentId: varchar("experiment_id"),
-  sourceNodeId: varchar("source_node_id").notNull().references(() => networkNodes.id),
-  targetNodeId: varchar("target_node_id").notNull().references(() => networkNodes.id),
-  protocol: networkProtocolEnum("protocol").notNull(),
-  properties: jsonb("properties"),
+export const networkChannels = sqliteTable("network_channels", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  experimentId: text("experiment_id"),
+  sourceNodeId: text("source_node_id").notNull().references(() => networkNodes.id),
+  targetNodeId: text("target_node_id").notNull().references(() => networkNodes.id),
+  protocol: text("protocol").notNull(), // networkProtocolEnum
+  properties: text("properties", { mode: "json" }),
 });
 
-export const networkExperiments = pgTable("network_experiments", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
+export const networkExperiments = sqliteTable("network_experiments", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => users.id),
   name: text("name").notNull(),
   description: text("description"),
-  protocol: networkProtocolEnum("protocol").notNull(),
-  topology: jsonb("topology"),
-  results: jsonb("results"),
+  protocol: text("protocol").notNull(), // networkProtocolEnum
+  topology: text("topology", { mode: "json" }),
+  results: text("results", { mode: "json" }),
   status: text("status").notNull().default("draft"),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const quantumTokens = pgTable("quantum_tokens", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
+export const quantumTokens = sqliteTable("quantum_tokens", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull().references(() => users.id),
   tokenType: text("token_type").notNull(),
-  payload: jsonb("payload"),
-  issuedAt: timestamp("issued_at").notNull().default(sql`now()`),
-  expiresAt: timestamp("expires_at"),
-  revokedAt: timestamp("revoked_at"),
+  payload: text("payload", { mode: "json" }),
+  issuedAt: text("issued_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  expiresAt: text("expires_at"),
+  revokedAt: text("revoked_at"),
 });
 
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({
@@ -408,6 +408,7 @@ export const insertJobSchema = createInsertSchema(jobs).omit({
 
 export const insertJobResultSchema = createInsertSchema(jobResults).omit({
   id: true,
+  metadata: true, // metadata can be null
 });
 
 export const insertApiKeySchema = createInsertSchema(apiKeys).omit({

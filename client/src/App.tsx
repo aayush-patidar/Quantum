@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -19,7 +19,7 @@ import ResultsPage from "@/pages/results";
 import SettingsPage from "@/pages/settings";
 import SupportPage from "@/pages/support";
 import DocumentationPage from "@/pages/documentation";
-import EducationPage from "@/pages/education";
+
 import AssistantPage from "@/pages/assistant";
 import HackathonPage from "@/pages/hackathon";
 import UseCasesPage from "@/pages/use-cases";
@@ -55,7 +55,7 @@ function AppRouter() {
       <Route path="/settings" component={SettingsPage} />
       <Route path="/support" component={SupportPage} />
       <Route path="/documentation" component={DocumentationPage} />
-      <Route path="/education" component={EducationPage} />
+      <Route path="/education" component={() => <Redirect to="/courses" />} />
       <Route path="/assistant" component={AssistantPage} />
       <Route path="/hackathon" component={HackathonPage} />
       <Route path="/use-cases" component={UseCasesPage} />

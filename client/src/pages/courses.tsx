@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Course, CourseLesson } from "@shared/schema";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,9 +20,26 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { BookOpen, Plus, ChevronDown, ChevronRight, ArrowLeft, CheckCircle, GraduationCap } from "lucide-react";
+import {
+  BookOpen,
+  Plus,
+  ChevronDown,
+  ChevronRight,
+  ArrowLeft,
+  CheckCircle,
+  GraduationCap,
+  Atom,
+  CircuitBoard,
+  Brain,
+  ShieldCheck,
+  Cpu,
+  Clock,
+  Layers,
+} from "lucide-react";
+import { useComingSoon } from "@/lib/coming-soon";
 
-interface CourseWithLessons extends Course {
+interface CourseWithStats extends Course {
+  lessonCount?: number;
   lessons?: CourseLesson[];
 }
 
@@ -31,16 +48,27 @@ interface EnrollmentCheck {
   enrollment?: { progress: number; completedLessons: string[] | null };
 }
 
-function getDifficultyVariant(difficulty: string) {
-  switch (difficulty) {
+function getCourseIcon(course: Course) {
+  const title = course.title.toLowerCase();
+  if (title.includes("fundament")) return Atom;
+  if (title.includes("circuit")) return CircuitBoard;
+  if (title.includes("algorithm")) return Brain;
+  if (title.includes("error")) return ShieldCheck;
+  if (title.includes("learning")) return GraduationCap;
+  if (title.includes("hardware")) return Cpu;
+  return BookOpen;
+}
+
+function getLevelBadge(level: string) {
+  switch (level) {
     case "beginner":
-      return <Badge variant="secondary" data-testid={`badge-difficulty-${difficulty}`}>{difficulty}</Badge>;
+      return <Badge className="bg-green-600 text-white no-default-hover-elevate" data-testid={`badge-level-${level}`}>Beginner</Badge>;
     case "intermediate":
-      return <Badge className="bg-blue-600 text-white no-default-hover-elevate" data-testid={`badge-difficulty-${difficulty}`}>{difficulty}</Badge>;
+      return <Badge className="bg-blue-600 text-white no-default-hover-elevate" data-testid={`badge-level-${level}`}>Intermediate</Badge>;
     case "advanced":
-      return <Badge className="bg-orange-600 text-white no-default-hover-elevate" data-testid={`badge-difficulty-${difficulty}`}>{difficulty}</Badge>;
+      return <Badge className="bg-purple-600 text-white no-default-hover-elevate" data-testid={`badge-level-${level}`}>Advanced</Badge>;
     default:
-      return <Badge variant="secondary" data-testid={`badge-difficulty-${difficulty}`}>{difficulty}</Badge>;
+      return <Badge variant="secondary" data-testid={`badge-level-${level}`}>{level}</Badge>;
   }
 }
 
@@ -53,8 +81,9 @@ function CourseDetail({
 }) {
   const { toast } = useToast();
   const [expandedLesson, setExpandedLesson] = useState<string | null>(null);
+  const showComingSoon = useComingSoon();
 
-  const { data: course, isLoading: courseLoading } = useQuery<CourseWithLessons>({
+  const { data: course, isLoading: courseLoading } = useQuery<CourseWithStats>({
     queryKey: ["/api/courses", courseId],
   });
 
@@ -62,6 +91,8 @@ function CourseDetail({
     queryKey: ["/api/courses", courseId, "enroll"],
   });
 
+  /* 
+  // Enrollment disabled - using Coming Soon toast instead
   const enrollMutation = useMutation({
     mutationFn: async () => {
       await apiRequest("POST", `/api/courses/${courseId}/enroll`);
@@ -74,6 +105,7 @@ function CourseDetail({
       toast({ title: "Enrollment failed", description: err.message, variant: "destructive" });
     },
   });
+  */
 
   const progressMutation = useMutation({
     mutationFn: async (lessonId: string) => {
@@ -128,7 +160,7 @@ function CourseDetail({
           {course.description}
         </p>
         <div className="flex flex-wrap items-center gap-2 mt-3">
-          {getDifficultyVariant(course.difficulty)}
+          {getLevelBadge(course.difficulty)}
           {course.category && (
             <Badge variant="outline" data-testid="badge-course-category">{course.category}</Badge>
           )}
@@ -153,8 +185,8 @@ function CourseDetail({
           </CardContent>
         </Card>
       ) : (
-        <Button onClick={() => enrollMutation.mutate()} disabled={enrollMutation.isPending} data-testid="button-enroll-detail">
-          {enrollMutation.isPending ? "Enrolling..." : "Enroll in this Course"}
+        <Button onClick={showComingSoon} data-testid="button-enroll-detail">
+          Enroll in this Course
         </Button>
       )}
 
@@ -426,20 +458,39 @@ export default function CoursesPage() {
   const { toast } = useToast();
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [difficultyFilter, setDifficultyFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState("browse");
+
 
   const queryKeyBase = "/api/courses";
-  const queryKey =
-    difficultyFilter === "all"
-      ? [queryKeyBase]
-      : [`${queryKeyBase}?difficulty=${difficultyFilter}`];
-
-  const { data: courses, isLoading } = useQuery<Course[]>({
-    queryKey,
+  const { data: courses, isLoading } = useQuery<CourseWithStats[]>({
+    queryKey: [queryKeyBase],
   });
 
-  const { data: enrolledCourses, isLoading: enrolledLoading } = useQuery<Course[]>({
-    queryKey: ["/api/courses?enrolled=true"],
+  const { data: enrolledCourses, isLoading: enrolledLoading } = useQuery<CourseWithStats[]>({
+    queryKey: [queryKeyBase, { enrolled: true }],
+    staleTime: 0,
+    refetchOnMount: true,
+    queryFn: async () => {
+      console.log("🎯 Custom queryFn: Fetching enrolled courses...");
+      const url = `${queryKeyBase}?enrolled=true`;
+      console.log("🎯 URL:", url);
+      const res = await fetch(url, {
+        credentials: "include",
+      });
+      console.log("🎯 Response status:", res.status);
+      if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
+      const data = await res.json();
+      console.log("🎯 Enrolled courses data:", data);
+      return data;
+    },
   });
+
+
+  const filteredCourses = useMemo(() => {
+    if (!courses) return [];
+    if (difficultyFilter === "all") return courses;
+    return courses.filter(c => c.difficulty === difficultyFilter);
+  }, [courses, difficultyFilter]);
 
   const myCourses = useMemo(() => {
     if (!courses || !user) return [];
@@ -452,6 +503,7 @@ export default function CoursesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/courses?enrolled=true"] });
       toast({ title: "Enrolled successfully" });
     },
     onError: (err: Error) => {
@@ -479,25 +531,32 @@ export default function CoursesPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="browse" data-testid="tabs-courses">
+      <Tabs value={activeTab} onValueChange={setActiveTab} data-testid="tabs-courses">
         <TabsList data-testid="tabs-list-courses">
           <TabsTrigger value="browse" data-testid="tab-browse">Browse Courses</TabsTrigger>
           <TabsTrigger value="enrolled" data-testid="tab-enrolled">My Courses</TabsTrigger>
           <TabsTrigger value="teach" data-testid="tab-teach">Teach</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="browse" className="space-y-4 mt-4">
-          <div className="flex flex-wrap items-center gap-2">
+        <TabsContent value="browse" className="space-y-6 mt-6">
+          <div className="flex flex-wrap items-center gap-2" data-testid="filter-level">
             {["all", "beginner", "intermediate", "advanced"].map((level) => (
               <Button
                 key={level}
-                size="sm"
                 variant={difficultyFilter === level ? "default" : "outline"}
+                size="sm"
                 onClick={() => setDifficultyFilter(level)}
-                data-testid={`button-filter-${level}`}
                 className="toggle-elevate"
+                data-testid={`button-filter-${level}`}
               >
-                {level === "all" ? "All" : level.charAt(0).toUpperCase() + level.slice(1)}
+                {level === "all" ? (
+                  <>
+                    <Layers className="w-4 h-4 mr-1" />
+                    All Courses
+                  </>
+                ) : (
+                  level.charAt(0).toUpperCase() + level.slice(1)
+                )}
               </Button>
             ))}
           </div>
@@ -505,70 +564,64 @@ export default function CoursesPage() {
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-48" data-testid={`skeleton-course-${i}`} />
+                <Skeleton key={i} className="h-64" data-testid={`skeleton-course-${i}`} />
               ))}
             </div>
-          ) : courses && courses.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {courses.map((course) => (
-                <Card
-                  key={course.id}
-                  className="hover-elevate cursor-pointer"
-                  data-testid={`card-course-${course.id}`}
-                  onClick={() => setSelectedCourseId(course.id)}
-                >
-                  <CardHeader className="space-y-1">
-                    <CardTitle className="text-base" data-testid={`text-course-title-${course.id}`}>
-                      {course.title}
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground line-clamp-2" data-testid={`text-course-desc-${course.id}`}>
-                      {course.description}
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap items-center gap-1">
-                      {getDifficultyVariant(course.difficulty)}
-                      {course.category && (
-                        <Badge variant="outline" data-testid={`badge-category-${course.id}`}>
-                          {course.category}
-                        </Badge>
-                      )}
-                      {course.tags?.map((tag) => (
-                        <Badge key={tag} variant="secondary" data-testid={`badge-tag-${course.id}-${tag}`}>
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs text-muted-foreground" data-testid={`text-lesson-count-${course.id}`}>
-                      <BookOpen className="inline h-3 w-3 mr-1" />
-                      Course
-                    </span>
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        enrollMutation.mutate(course.id);
-                      }}
-                      disabled={enrollMutation.isPending}
-                      data-testid={`button-enroll-${course.id}`}
-                    >
-                      Enroll
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
+          ) : filteredCourses && filteredCourses.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="grid-courses">
+              {filteredCourses.map((course) => {
+                const Icon = getCourseIcon(course);
+                const lessonCount = course.lessonCount ?? 0;
+                const hours = Math.ceil(lessonCount * 0.75) || 4; // Mock estimation
+
+                return (
+                  <Card key={course.id} data-testid={`card-course-${course.id}`}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="rounded-md bg-muted p-2">
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        {getLevelBadge(course.difficulty)}
+                      </div>
+                      <CardTitle className="text-lg mt-2" data-testid={`text-course-title-${course.id}`}>
+                        {course.title}
+                      </CardTitle>
+                      <CardDescription className="line-clamp-2" data-testid={`text-course-description-${course.id}`}>
+                        {course.description}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1" data-testid={`text-course-lessons-${course.id}`}>
+                          <BookOpen className="w-4 h-4" />
+                          {lessonCount} lessons
+                        </span>
+                        <span className="flex items-center gap-1" data-testid={`text-course-hours-${course.id}`}>
+                          <Clock className="w-4 h-4" />
+                          {hours} hours
+                        </span>
+                      </div>
+                      <Button
+                        className="w-full"
+                        onClick={() => setSelectedCourseId(course.id)}
+                        data-testid={`button-start-course-${course.id}`}
+                      >
+                        Start Course
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-12">
               <GraduationCap className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground" data-testid="text-no-courses">No courses available.</p>
+              <p className="text-muted-foreground" data-testid="text-no-courses">No courses found matching criteria.</p>
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="enrolled" className="mt-4">
+        <TabsContent value="enrolled" className="mt-6">
           {enrolledLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -591,28 +644,40 @@ export default function CoursesPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap items-center gap-1 mb-2">
-                      {getDifficultyVariant(course.difficulty)}
+                      {getLevelBadge(course.difficulty)}
                     </div>
-                    <Progress value={0} className="h-2" data-testid={`progress-enrolled-${course.id}`} />
-                    <p className="text-xs text-muted-foreground mt-1" data-testid={`text-enrolled-progress-${course.id}`}>
-                      In Progress
+                    <p className="text-xs text-muted-foreground mt-1" data-testid={`text-enrolled-message-${course.id}`}>
+                      Click to continue learning
                     </p>
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-12">
-              <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground" data-testid="text-no-enrolled">
-                You haven't enrolled in any courses yet.
-              </p>
+            <div className="flex flex-col items-center justify-center py-16 space-y-4" data-testid="empty-state-enrolled">
+              <div className="rounded-full bg-muted p-6">
+                <BookOpen className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <div className="text-center space-y-2">
+                <h3 className="text-lg font-semibold" data-testid="text-no-enrolled-title">
+                  No enrolled courses yet
+                </h3>
+                <p className="text-muted-foreground max-w-sm" data-testid="text-no-enrolled">
+                  Enroll in a course from Browse Courses to see it here and track your progress.
+                </p>
+              </div>
+              <Button
+                onClick={() => setActiveTab("browse")}
+                data-testid="button-browse-from-empty"
+              >
+                Browse Courses
+              </Button>
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="teach" className="space-y-4 mt-4">
-          <CreateCourseDialog onCreated={() => {}} />
+        <TabsContent value="teach" className="space-y-4 mt-6">
+          <CreateCourseDialog onCreated={() => { }} />
 
           {isLoading ? (
             <div className="space-y-3">
@@ -630,7 +695,7 @@ export default function CoursesPage() {
                         {course.title}
                       </CardTitle>
                       <div className="flex flex-wrap items-center gap-1 mt-1">
-                        {getDifficultyVariant(course.difficulty)}
+                        {getLevelBadge(course.difficulty)}
                         <Badge variant={course.isPublished ? "default" : "secondary"} data-testid={`badge-published-${course.id}`}>
                           {course.isPublished ? "Published" : "Draft"}
                         </Badge>

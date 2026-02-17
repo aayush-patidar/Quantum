@@ -53,7 +53,7 @@ const platformItems = [
 const toolsItems = [
   { title: "AI Assistant", url: "/assistant", icon: Bot, testId: "nav-assistant" },
   { title: "Documentation", url: "/documentation", icon: BookOpen, testId: "nav-documentation" },
-  { title: "Education", url: "/education", icon: GraduationCap, testId: "nav-education" },
+
   { title: "Hackathons", url: "/hackathon", icon: Trophy, testId: "nav-hackathon" },
   { title: "Use Cases", url: "/use-cases", icon: Wand2, testId: "nav-use-cases" },
   { title: "Labs", url: "/labs", icon: FlaskConical, testId: "nav-labs" },

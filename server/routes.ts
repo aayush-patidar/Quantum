@@ -54,20 +54,20 @@ async function simulateQuantumJob(jobId: string, shots: number, algorithmType: s
   const numQubits = 3;
   const measurements: Record<string, number> = {};
   let remaining = shots;
-  const states = Array.from({length: 2**numQubits}, (_, i) => i.toString(2).padStart(numQubits, '0'));
+  const states = Array.from({ length: 2 ** numQubits }, (_, i) => i.toString(2).padStart(numQubits, '0'));
 
   for (let i = 0; i < states.length - 1 && remaining > 0; i++) {
     const count = Math.floor(Math.random() * remaining * 0.6);
     if (count > 0) { measurements[states[i]] = count; remaining -= count; }
   }
-  if (remaining > 0) measurements[states[states.length-1]] = remaining;
+  if (remaining > 0) measurements[states[states.length - 1]] = remaining;
 
   let convergenceData = null;
   if (algorithmType === "vqe" || algorithmType === "qaoa") {
-    convergenceData = Array.from({length: 20}, (_, i) => ({
+    convergenceData = Array.from({ length: 20 }, (_, i) => ({
       iteration: i,
-      energy: -0.5 - Math.random() * 0.5 * (1 - Math.exp(-i/5)),
-      gradient: Math.random() * 0.1 * Math.exp(-i/5)
+      energy: -0.5 - Math.random() * 0.5 * (1 - Math.exp(-i / 5)),
+      gradient: Math.random() * 0.1 * Math.exp(-i / 5)
     }));
   }
 
@@ -135,7 +135,7 @@ async function seedDatabase() {
     description: "Creates a maximally entangled Bell state |Φ+⟩ = (|00⟩ + |11⟩)/√2",
     userId: demoUser.id,
     qasm: "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\ncreg c[2];\nh q[0];\ncx q[0],q[1];\nmeasure q[0] -> c[0];\nmeasure q[1] -> c[1];",
-    circuitData: { qubits: 2, steps: 4, gates: [{id:"g1",gate:"H",qubit:0,step:0,color:"#3b82f6"},{id:"g2",gate:"CNOT",qubit:1,step:1,controlQubit:0,color:"#f59e0b"},{id:"g3",gate:"M",qubit:0,step:3,color:"#6b7280"},{id:"g4",gate:"M",qubit:1,step:3,color:"#6b7280"}] },
+    circuitData: { qubits: 2, steps: 4, gates: [{ id: "g1", gate: "H", qubit: 0, step: 0, color: "#3b82f6" }, { id: "g2", gate: "CNOT", qubit: 1, step: 1, controlQubit: 0, color: "#f59e0b" }, { id: "g3", gate: "M", qubit: 0, step: 3, color: "#6b7280" }, { id: "g4", gate: "M", qubit: 1, step: 3, color: "#6b7280" }] },
     tags: ["entanglement", "bell-state", "tutorial"],
     visibility: "public" as const,
   });
@@ -145,7 +145,7 @@ async function seedDatabase() {
     description: "Greenberger-Horne-Zeilinger state on 3 qubits",
     userId: demoUser.id,
     qasm: "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[3];\ncreg c[3];\nh q[0];\ncx q[0],q[1];\ncx q[1],q[2];\nmeasure q[0] -> c[0];\nmeasure q[1] -> c[1];\nmeasure q[2] -> c[2];",
-    circuitData: { qubits: 3, steps: 6, gates: [{id:"g1",gate:"H",qubit:0,step:0,color:"#3b82f6"},{id:"g2",gate:"CNOT",qubit:1,step:1,controlQubit:0,color:"#f59e0b"},{id:"g3",gate:"CNOT",qubit:2,step:2,controlQubit:1,color:"#f59e0b"},{id:"g4",gate:"M",qubit:0,step:5,color:"#6b7280"},{id:"g5",gate:"M",qubit:1,step:5,color:"#6b7280"},{id:"g6",gate:"M",qubit:2,step:5,color:"#6b7280"}] },
+    circuitData: { qubits: 3, steps: 6, gates: [{ id: "g1", gate: "H", qubit: 0, step: 0, color: "#3b82f6" }, { id: "g2", gate: "CNOT", qubit: 1, step: 1, controlQubit: 0, color: "#f59e0b" }, { id: "g3", gate: "CNOT", qubit: 2, step: 2, controlQubit: 1, color: "#f59e0b" }, { id: "g4", gate: "M", qubit: 0, step: 5, color: "#6b7280" }, { id: "g5", gate: "M", qubit: 1, step: 5, color: "#6b7280" }, { id: "g6", gate: "M", qubit: 2, step: 5, color: "#6b7280" }] },
     tags: ["ghz", "entanglement", "multi-qubit"],
     visibility: "public" as const,
   });
@@ -155,7 +155,7 @@ async function seedDatabase() {
     description: "QFT circuit implementation on 3 qubits with controlled rotations",
     userId: demoUser.id,
     qasm: "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[3];\ncreg c[3];\nh q[0];\nrz(pi/2) q[0];\ncx q[1],q[0];\nh q[1];\nrz(pi/4) q[0];\ncx q[2],q[0];\nrz(pi/2) q[1];\ncx q[2],q[1];\nh q[2];",
-    circuitData: { qubits: 3, steps: 8, gates: [{id:"g1",gate:"H",qubit:0,step:0,color:"#3b82f6"},{id:"g2",gate:"RZ",qubit:0,step:1,color:"#c084fc",params:{angle:1.5708}},{id:"g3",gate:"CNOT",qubit:0,step:2,controlQubit:1,color:"#f59e0b"},{id:"g4",gate:"H",qubit:1,step:3,color:"#3b82f6"},{id:"g5",gate:"RZ",qubit:0,step:4,color:"#c084fc",params:{angle:0.7854}},{id:"g6",gate:"CNOT",qubit:0,step:5,controlQubit:2,color:"#f59e0b"},{id:"g7",gate:"RZ",qubit:1,step:5,color:"#c084fc",params:{angle:1.5708}},{id:"g8",gate:"H",qubit:2,step:7,color:"#3b82f6"}] },
+    circuitData: { qubits: 3, steps: 8, gates: [{ id: "g1", gate: "H", qubit: 0, step: 0, color: "#3b82f6" }, { id: "g2", gate: "RZ", qubit: 0, step: 1, color: "#c084fc", params: { angle: 1.5708 } }, { id: "g3", gate: "CNOT", qubit: 0, step: 2, controlQubit: 1, color: "#f59e0b" }, { id: "g4", gate: "H", qubit: 1, step: 3, color: "#3b82f6" }, { id: "g5", gate: "RZ", qubit: 0, step: 4, color: "#c084fc", params: { angle: 0.7854 } }, { id: "g6", gate: "CNOT", qubit: 0, step: 5, controlQubit: 2, color: "#f59e0b" }, { id: "g7", gate: "RZ", qubit: 1, step: 5, color: "#c084fc", params: { angle: 1.5708 } }, { id: "g8", gate: "H", qubit: 2, step: 7, color: "#3b82f6" }] },
     tags: ["qft", "fourier", "algorithm"],
     visibility: "private" as const,
   });
@@ -167,13 +167,13 @@ async function seedDatabase() {
 
   const job1 = await storage.createJob({ userId: demoUser.id, circuitId: bellCircuit.id, backendId: qiskitAer.id, algorithmType: "raw_circuit" as const, shots: 1024 });
   await storage.updateJobStatus(job1.id, "running");
-  await storage.createJobResult({ jobId: job1.id, measurements: {"00": 512, "01": 3, "10": 5, "11": 504}, executionTime: 1.2, expectationValues: {"ZZ": 0.984} });
+  await storage.createJobResult({ jobId: job1.id, measurements: { "00": 512, "01": 3, "10": 5, "11": 504 }, executionTime: 1.2, expectationValues: { "ZZ": 0.984 } });
   await storage.updateJobStatus(job1.id, "completed");
 
   const job2 = await storage.createJob({ userId: demoUser.id, circuitId: bellCircuit.id, backendId: pennyDefault.id, algorithmType: "vqe" as const, shots: 4096 });
   await storage.updateJobStatus(job2.id, "running");
-  const convergenceData = Array.from({length: 20}, (_, i) => ({ iteration: i, energy: -0.2 - 0.95 * (1 - Math.exp(-i / 5)), gradient: 0.5 * Math.exp(-i / 5) }));
-  await storage.createJobResult({ jobId: job2.id, measurements: {"000": 1800, "001": 500, "010": 400, "011": 200, "100": 600, "101": 300, "110": 196, "111": 100}, convergenceData, executionTime: 4.7, expectationValues: {"H": -1.137} });
+  const convergenceData = Array.from({ length: 20 }, (_, i) => ({ iteration: i, energy: -0.2 - 0.95 * (1 - Math.exp(-i / 5)), gradient: 0.5 * Math.exp(-i / 5) }));
+  await storage.createJobResult({ jobId: job2.id, measurements: { "000": 1800, "001": 500, "010": 400, "011": 200, "100": 600, "101": 300, "110": 196, "111": 100 }, convergenceData, executionTime: 4.7, expectationValues: { "H": -1.137 } });
   await storage.updateJobStatus(job2.id, "completed");
 
   const job3 = await storage.createJob({ userId: demoUser.id, circuitId: bellCircuit.id, backendId: aerNoise.id, algorithmType: "qaoa" as const, shots: 2048 });
@@ -520,7 +520,7 @@ export async function registerRoutes(
       await storage.updateCreditBalance(req.session.userId!, -estimatedCost);
       simulateQuantumJob(job.id, job.shots, job.algorithmType).catch(err => {
         console.error(`Simulation failed for job ${job.id}:`, err);
-        storage.updateJobStatus(job.id, "failed", err.message).catch(() => {});
+        storage.updateJobStatus(job.id, "failed", err.message).catch(() => { });
       });
       res.status(201).json(job);
     } catch (error: any) { res.status(500).json({ message: error.message }); }
@@ -741,14 +741,14 @@ Help users design circuits, debug quantum programs, explain quantum concepts, op
       let qasm = `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[${numQubits}];\ncreg c[${numQubits}];\n`;
       if (journey.algorithmType === "qaoa") {
         for (let i = 0; i < numQubits; i++) qasm += `h q[${i}];\n`;
-        for (let i = 0; i < numQubits - 1; i++) qasm += `cx q[${i}],q[${i+1}];\nrz(0.5) q[${i+1}];\ncx q[${i}],q[${i+1}];\n`;
+        for (let i = 0; i < numQubits - 1; i++) qasm += `cx q[${i}],q[${i + 1}];\nrz(0.5) q[${i + 1}];\ncx q[${i}],q[${i + 1}];\n`;
         for (let i = 0; i < numQubits; i++) qasm += `rx(0.5) q[${i}];\n`;
       } else if (journey.algorithmType === "vqe") {
         for (let i = 0; i < numQubits; i++) qasm += `ry(0.5) q[${i}];\n`;
-        for (let i = 0; i < numQubits - 1; i++) qasm += `cx q[${i}],q[${i+1}];\n`;
+        for (let i = 0; i < numQubits - 1; i++) qasm += `cx q[${i}],q[${i + 1}];\n`;
       } else if (journey.algorithmType === "qml") {
         for (let i = 0; i < numQubits; i++) qasm += `h q[${i}];\nry(0.3) q[${i}];\n`;
-        for (let i = 0; i < numQubits - 1; i++) qasm += `cx q[${i}],q[${i+1}];\n`;
+        for (let i = 0; i < numQubits - 1; i++) qasm += `cx q[${i}],q[${i + 1}];\n`;
       } else {
         for (let i = 0; i < numQubits; i++) qasm += `h q[${i}];\n`;
       }
@@ -776,7 +776,7 @@ Help users design circuits, debug quantum programs, explain quantum concepts, op
       });
       await storage.updateCreditBalance(req.session.userId!, -estimatedCost);
       simulateQuantumJob(job.id, shots, journey.algorithmType).catch(err => {
-        storage.updateJobStatus(job.id, "failed", err.message).catch(() => {});
+        storage.updateJobStatus(job.id, "failed", err.message).catch(() => { });
       });
       res.status(201).json({ circuit, job });
     } catch (error: any) { res.status(500).json({ message: error.message }); }
@@ -900,7 +900,7 @@ Help users design circuits, debug quantum programs, explain quantum concepts, op
       });
       await storage.updateCreditBalance(req.session.userId!, -estimatedCost);
       simulateQuantumJob(job.id, shots, algorithmType || "raw_circuit").catch(err => {
-        storage.updateJobStatus(job.id, "failed", err.message).catch(() => {});
+        storage.updateJobStatus(job.id, "failed", err.message).catch(() => { });
       });
       res.status(201).json({ circuit, job });
     } catch (error: any) { res.status(500).json({ message: error.message }); }
@@ -962,7 +962,7 @@ Help users design circuits, debug quantum programs, explain quantum concepts, op
       });
       await storage.updateCreditBalance(req.session.userId!, -estimatedCost);
       simulateQuantumJob(job.id, shots, config.algorithmType || "raw_circuit").catch(err => {
-        storage.updateJobStatus(job.id, "failed", err.message).catch(() => {});
+        storage.updateJobStatus(job.id, "failed", err.message).catch(() => { });
       });
       res.status(201).json(job);
     } catch (error: any) { res.status(500).json({ message: error.message }); }
@@ -1000,11 +1000,11 @@ Help users design circuits, debug quantum programs, explain quantum concepts, op
       let qasm = `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[${numQubits}];\ncreg c[${numQubits}];\n`;
       for (let i = 0; i < numQubits; i++) qasm += `h q[${i}];\n`;
       if (template.algorithmType === "qaoa") {
-        for (let i = 0; i < numQubits - 1; i++) qasm += `cx q[${i}],q[${i+1}];\nrz(0.5) q[${i+1}];\ncx q[${i}],q[${i+1}];\n`;
+        for (let i = 0; i < numQubits - 1; i++) qasm += `cx q[${i}],q[${i + 1}];\nrz(0.5) q[${i + 1}];\ncx q[${i}],q[${i + 1}];\n`;
         for (let i = 0; i < numQubits; i++) qasm += `rx(0.5) q[${i}];\n`;
       } else if (template.algorithmType === "vqe") {
         for (let i = 0; i < numQubits; i++) qasm += `ry(0.5) q[${i}];\n`;
-        for (let i = 0; i < numQubits - 1; i++) qasm += `cx q[${i}],q[${i+1}];\n`;
+        for (let i = 0; i < numQubits - 1; i++) qasm += `cx q[${i}],q[${i + 1}];\n`;
       }
       for (let i = 0; i < numQubits; i++) qasm += `measure q[${i}] -> c[${i}];\n`;
       const circuit = await storage.createCircuit({
@@ -1029,7 +1029,7 @@ Help users design circuits, debug quantum programs, explain quantum concepts, op
       });
       await storage.updateCreditBalance(req.session.userId!, -estimatedCost);
       simulateQuantumJob(job.id, shots, template.algorithmType).catch(err => {
-        storage.updateJobStatus(job.id, "failed", err.message).catch(() => {});
+        storage.updateJobStatus(job.id, "failed", err.message).catch(() => { });
       });
       let baseline = null;
       if (template.domain === "finance" || template.domain === "optimization") {
@@ -1179,8 +1179,29 @@ Help users design circuits, debug quantum programs, explain quantum concepts, op
   });
 
   app.get("/api/courses", async (req: Request, res: Response) => {
+    console.log("=== GET /api/courses ===");
+    console.log("Query params:", JSON.stringify(req.query));
+    console.log("enrolled param:", req.query.enrolled);
+    console.log("enrolled === 'true':", req.query.enrolled === "true");
+    console.log("String(enrolled) === 'true':", String(req.query.enrolled) === "true");
+    console.log("User ID:", req.session.userId);
+    console.log("========================");
+
     try {
-      const allCourses = await storage.getAllCourses();
+      if (String(req.query.enrolled) === "true") {
+        console.log("✅ Taking ENROLLED path");
+        if (!req.session.userId) {
+          console.log("❌ No user session, returning 401");
+          return res.sendStatus(401);
+        }
+        console.log("📚 Fetching enrolled courses for user:", req.session.userId);
+        const enrolled = await storage.getEnrolledCoursesWithStats(req.session.userId);
+        console.log("📊 Found", enrolled.length, "enrolled courses");
+        return res.json(enrolled);
+      }
+
+      console.log("📋 Taking ALL COURSES path");
+      const allCourses = await storage.getAllCoursesWithStats();
       const difficulty = req.query.difficulty as string | undefined;
       if (difficulty) {
         res.json(allCourses.filter(c => c.difficulty === difficulty));

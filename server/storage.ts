@@ -1,6 +1,6 @@
-import { eq, desc, sql, count, and, isNull, gt } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
+import { eq, desc, sql, count, and, isNull, gt, getTableColumns } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import Database from "better-sqlite3";
 import {
   type User, type InsertUser,
   type Organization, type InsertOrganization,
@@ -40,8 +40,8 @@ import {
   jobDiagnostics, networkExperiments, networkNodes, networkChannels, quantumTokens,
 } from "@shared/schema";
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle(pool);
+const sqlite = new Database("quantum.db");
+export const db = drizzle(sqlite);
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -126,6 +126,7 @@ export interface IStorage {
   createClassicalBaseline(data: InsertClassicalBaseline): Promise<ClassicalBaseline>;
 
   getAllCourses(): Promise<Course[]>;
+  getAllCoursesWithStats(): Promise<(Course & { lessonCount: number })[]>;
   getCourse(id: string): Promise<Course | undefined>;
   getCoursesByInstructor(userId: string): Promise<Course[]>;
   createCourse(data: InsertCourse): Promise<Course>;
@@ -138,6 +139,7 @@ export interface IStorage {
   getEnrollmentsByCourse(courseId: string): Promise<CourseEnrollment[]>;
   getEnrollment(courseId: string, userId: string): Promise<CourseEnrollment | undefined>;
   createEnrollment(data: InsertCourseEnrollment): Promise<CourseEnrollment>;
+  getEnrolledCoursesWithStats(userId: string): Promise<(Course & { lessonCount: number })[]>;
   updateEnrollmentProgress(id: string, progress: number, completedLessons: string[]): Promise<CourseEnrollment | undefined>;
 
   getAllPublicExperiments(): Promise<PublicExperiment[]>;
@@ -498,6 +500,23 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(courses).where(eq(courses.isPublished, true));
   }
 
+  async getAllCoursesWithStats(): Promise<(Course & { lessonCount: number })[]> {
+    const results = await db
+      .select({
+        ...getTableColumns(courses),
+        lessonCount: count(courseLessons.id),
+      })
+      .from(courses)
+      .leftJoin(courseLessons, eq(courses.id, courseLessons.courseId))
+      .where(eq(courses.isPublished, true))
+      .groupBy(courses.id);
+
+    return results.map((r) => ({
+      ...r,
+      lessonCount: Number(r.lessonCount),
+    }));
+  }
+
   async getCourse(id: string): Promise<Course | undefined> {
     const [course] = await db.select().from(courses).where(eq(courses.id, id));
     return course;
@@ -532,6 +551,29 @@ export class DatabaseStorage implements IStorage {
 
   async getEnrollmentsByCourse(courseId: string): Promise<CourseEnrollment[]> {
     return db.select().from(courseEnrollments).where(eq(courseEnrollments.courseId, courseId));
+  }
+
+  async getEnrolledCoursesWithStats(userId: string): Promise<(Course & { lessonCount: number })[]> {
+    console.log("🔍 getEnrolledCoursesWithStats called with userId:", userId);
+
+    const results = await db
+      .select({
+        ...getTableColumns(courses),
+        lessonCount: count(courseLessons.id),
+      })
+      .from(courses)
+      .innerJoin(courseEnrollments, eq(courses.id, courseEnrollments.courseId))
+      .leftJoin(courseLessons, eq(courses.id, courseLessons.courseId))
+      .where(eq(courseEnrollments.userId, userId))
+      .groupBy(courses.id);
+
+    console.log("🔍 Query returned", results.length, "courses");
+    console.log("🔍 Course IDs:", results.map(r => r.id));
+
+    return results.map((r) => ({
+      ...r,
+      lessonCount: Number(r.lessonCount),
+    }));
   }
 
   async getEnrollment(courseId: string, userId: string): Promise<CourseEnrollment | undefined> {
